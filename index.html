@@ -1343,6 +1343,1300 @@ function switchView(v){
 }
 
 // --- Init ---
+initStorage();
+buildDayNav();
+renderPlan();
+renderShop();
+renderFavs();
+setInterval(checkDailySummary, 60000);
+setTimeout(checkDailySummary, 3000);
+setTimeout(()=>{
+  const nav=document.getElementById('day-nav');
+  if(nav.children[currentDay]) nav.children[currentDay].scrollIntoView({inline:'center',block:'nearest'});
+},100);
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</body>
+</html>
+.meal-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 13px;min-width:0;transition:border-color .2s,background .2s}
+.meal-card.expanded{border-color:rgba(45,186,133,0.35);background:var(--bg3)}
+.meal-card.adjusted{border-color:rgba(240,160,48,0.35)}
+.meal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;cursor:pointer}
+.meal-name{font-size:14px;font-weight:500;color:var(--text);line-height:1.3;flex:1}
+.chevron{color:var(--text3);font-size:15px;flex-shrink:0;transition:transform .25s;margin-top:2px}
+.meal-card.expanded .chevron{transform:rotate(180deg)}
+.meal-desc{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5}
+.meal-kcal{font-size:11px;color:var(--green);font-weight:600;margin-top:5px}
+.meal-kcal.adjusted{color:var(--amber)}
+
+/* Mark meal button — inline in card */
+.mark-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.mark-btn{flex:1;padding:8px;background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:12px;font-family:var(--font);cursor:pointer;transition:all .2s;text-align:center}
+.mark-btn.done{background:var(--green-dim);border-color:var(--green);color:var(--green);font-weight:500}
+.mark-btn.done::before{content:'✓ ';}
+
+/* Alts */
+.alts{max-height:0;overflow:hidden;transition:max-height .35s,opacity .25s;opacity:0}
+.meal-card.expanded .alts{max-height:800px;opacity:1}
+.alts-inner{padding-top:11px;margin-top:11px;border-top:1px solid var(--border)}
+.alts-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:7px}
+.alt-item{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;background:var(--bg4);border-radius:var(--radius-sm);margin-bottom:5px;cursor:pointer;transition:background .15s,border .15s;border:1px solid transparent}
+.alt-item:last-child{margin-bottom:0}
+.alt-item.done{background:var(--green-dim);border-color:rgba(45,186,133,0.3)}
+.alt-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:6px}
+.alt-name{font-size:13px;color:var(--text);font-weight:500;margin-bottom:2px}
+.alt-detail{font-size:11px;color:var(--text2);line-height:1.4}
+.alt-check{font-size:12px;color:var(--green);font-weight:600;margin-left:auto;flex-shrink:0;align-self:center;display:none}
+.alt-item.done .alt-check{display:block}
+
+.tip-card{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--radius);padding:11px 13px;margin-top:4px;font-size:13px;color:var(--text2);line-height:1.6}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:none;align-items:flex-end}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 20px 40px;width:100%;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5}
+.modal textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;font-size:14px;color:var(--text);font-family:var(--font);resize:none;min-height:90px;line-height:1.5}
+.modal textarea::placeholder{color:var(--text3)}
+.modal-btns{display:flex;gap:10px;margin-top:12px}
+.btn-primary{flex:1;padding:13px;background:var(--green);border:none;border-radius:var(--radius-sm);color:#fff;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer}
+.btn-secondary{padding:13px 18px;background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:14px;font-family:var(--font);cursor:pointer}
+.btn-primary:active,.btn-secondary:active{opacity:.7}
+.tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:10px 0 24px;display:flex;justify-content:space-around;z-index:200}
+.tab-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 14px}
+.tab-item:active{opacity:.6}
+.tab-icon{font-size:20px}
+.tab-lbl{font-size:10px;color:var(--text3);font-weight:500}
+.tab-item.active .tab-lbl{color:var(--green)}
+.fab{position:fixed;bottom:90px;right:18px;width:52px;height:52px;background:var(--green);border-radius:50%;border:none;color:#fff;font-size:26px;cursor:pointer;z-index:150;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(45,186,133,0.35);transition:transform .2s}
+.fab:active{transform:scale(.93)}
+.view{display:none}
+.view.active{display:block}
+.page-title{font-size:26px;font-weight:300;color:var(--text);padding:52px 18px 14px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;letter-spacing:-.5px}
+.shop-section{margin-bottom:18px}
+.shop-sec-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);padding:0 2px;margin-bottom:7px}
+.shop-item{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:5px;cursor:pointer;transition:opacity .2s}
+.shop-item.checked{opacity:.4}
+.shop-cb{width:20px;height:20px;border-radius:6px;border:1px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;transition:all .2s}
+.shop-item.checked .shop-cb{background:var(--green);border-color:var(--green);color:#fff}
+.shop-name{font-size:13px;color:var(--text);font-weight:500}
+.shop-item.checked .shop-name{text-decoration:line-through}
+.shop-qty{font-size:11px;color:var(--text3);margin-top:1px}
+.reset-btn{width:100%;padding:13px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);font-family:var(--font);font-size:14px;cursor:pointer;margin-top:6px}
+.fav-input-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.fav-input-card label{font-size:12px;color:var(--text2);display:block;margin-bottom:7px}
+.fav-input-card input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;color:var(--text);font-family:var(--font)}
+.fav-input-card input::placeholder{color:var(--text3)}
+.fav-add-btn{width:100%;padding:12px;background:var(--green);border:none;border-radius:var(--radius-sm);color:#fff;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;margin-top:10px}
+.fav-list{margin-top:4px}
+.fav-item{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:6px}
+.fav-item-name{font-size:13px;color:var(--text);font-weight:500}
+.fav-item-type{font-size:11px;color:var(--text2);margin-top:2px}
+.fav-del{background:transparent;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0 4px}
+.fav-section-title{font-size:12px;font-weight:600;color:var(--text2);margin:16px 0 8px 2px}
+.profile-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.profile-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.profile-row:last-child{border-bottom:none}
+.profile-lbl{font-size:13px;color:var(--text2)}
+.profile-val{font-size:13px;color:var(--text);font-weight:500}
+.profile-val.green{color:var(--green)}
+.hist-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.hist-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px}
+.hist-stat-val{font-size:20px;font-weight:500;color:var(--text)}
+.hist-stat-val.green{color:var(--green)}
+.hist-stat-val.amber{color:var(--amber)}
+.hist-stat-lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.hist-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.hist-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin:0 0 10px 2px}
+.hist-legend{display:flex;gap:16px;margin-bottom:10px}
+.hist-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+.hist-legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.weight-input-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.weight-input-row input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:18px;color:var(--text);font-family:var(--font);text-align:center}
+.weight-entry{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.weight-entry:last-child{border-bottom:none}
+.weight-entry-date{font-size:13px;color:var(--text2)}
+.weight-entry-val{font-size:14px;font-weight:500;color:var(--text)}
+.wdiff-down{color:var(--green);font-size:12px;font-weight:500}
+.wdiff-up{color:var(--amber);font-size:12px;font-weight:500}
+.no-data{font-size:13px;color:var(--text3);text-align:center;padding:20px 0}
+
+/* Option rows */
+.option-row{display:flex;align-items:center;gap:10px;padding:9px 4px;cursor:pointer;border-radius:var(--radius-sm);transition:background .15s;margin-bottom:2px}
+.option-row:active{background:var(--bg3)}
+.option-row.done{background:var(--green-dim)}
+.opt-cb{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:transparent;transition:all .2s}
+.option-row.done .opt-cb{background:var(--green);border-color:var(--green);color:#fff}
+.opt-info{flex:1;min-width:0}
+.opt-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.3}
+.option-row.done .opt-name{color:#2dba85}
+.opt-detail{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4}
+.opt-kcal{font-size:11px;color:var(--text3);flex-shrink:0;white-space:nowrap}
+.option-row.done .opt-kcal{color:var(--green)}
+.add-custom-btn{width:100%;margin-top:8px;padding:9px;background:transparent;border:1px dashed var(--border2);border-radius:var(--radius-sm);color:var(--text3);font-size:12px;font-family:var(--font);cursor:pointer;transition:all .2s;text-align:center}
+.add-custom-btn:active{background:var(--bg3)}
+/* AI pulse indicator */
+.ai-pulse{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);margin-left:auto}
+.ai-pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.ai-msg{font-size:12px;color:var(--text2);font-style:italic;line-height:1.5;margin-top:4px;min-height:16px;transition:opacity .3s}
+.ai-msg.loading{opacity:.4}
+.exp-wrap{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1),opacity .25s;opacity:0}
+.meal-card.expanded .exp-wrap{max-height:800px;opacity:1}
+.meal-card.expanded .chevron{transform:rotate(180deg)}
+
+/* Balance indicator */
+.balance-bar{padding:10px 18px;border-bottom:1px solid var(--border);transition:background .3s}
+.balance-bar.green{background:rgba(45,186,133,0.1)}
+.balance-bar.red{background:rgba(224,75,74,0.1)}
+.balance-bar.neutral{background:var(--bg2)}
+.balance-row{display:flex;align-items:center;gap:10px}
+.balance-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.balance-dot.green{background:#2dba85}
+.balance-dot.red{background:#e24b4a}
+.balance-dot.neutral{background:var(--text3)}
+.balance-main{flex:1}
+.balance-title{font-size:13px;font-weight:500;transition:color .3s}
+.balance-title.green{color:#2dba85}
+.balance-title.red{color:#e24b4a}
+.balance-title.neutral{color:var(--text2)}
+.balance-sub{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4}
+.balance-nums{text-align:right;flex-shrink:0}
+.balance-eaten{font-size:14px;font-weight:500;color:var(--text)}
+.balance-target{font-size:11px;color:var(--text3);margin-top:1px}
+</style>
+</head>
+<body>
+
+<div id="view-plan" class="view active">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <div class="header-date" id="top-date"></div>
+        <div class="header-day" id="top-day">Lunes</div>
+      </div>
+      <div class="kcal-pill" id="top-kcal">~1.780 kcal</div>
+    </div>
+    <div class="steps-bar">
+      <span class="steps-icon">👟</span>
+      <span class="steps-label">Pasos de hoy</span>
+      <input class="steps-field" type="number" id="steps-field" value="5000" min="0" max="30000" step="500">
+      <button class="btn-primary" style="padding:6px 12px;font-size:12px;border-radius:8px;white-space:nowrap" onclick="updateSteps()">OK</button>
+    </div>
+    <div class="stats-row" id="stats-row">
+      <div class="stat-pill" id="stat-streak">
+        <div class="stat-pill-val" style="color:var(--amber)" id="streak-num">0🔥</div>
+        <div class="stat-pill-lbl">Racha</div>
+      </div>
+      <div class="stat-pill" id="stat-eaten">
+        <div class="stat-pill-val" style="color:#e24b4a" id="stat-eaten-val">0</div>
+        <div class="stat-pill-lbl">kcal comidas</div>
+      </div>
+      <div class="stat-pill" id="stat-target">
+        <div class="stat-pill-val" style="color:var(--text2)" id="stat-target-val">0</div>
+        <div class="stat-pill-lbl">kcal objetivo</div>
+      </div>
+      <div class="stat-pill" id="stat-diff">
+        <div class="stat-pill-val" id="stat-diff-val">—</div>
+        <div class="stat-pill-lbl">diferencia</div>
+      </div>
+    </div>
+    <div class="day-nav" id="day-nav"></div>
+  </div>
+  <div class="prog-wrap">
+    <div class="prog-row"><span class="prog-lbl">Comidas completadas hoy</span><span class="prog-cnt" id="prog-text">0 / 3</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+  <div id="balance-bar" class="balance-bar neutral">
+    <div class="balance-row">
+      <div class="balance-dot neutral" id="bal-dot"></div>
+      <div class="balance-main">
+        <div class="balance-title neutral" id="bal-title">Empieza el día</div>
+        <div class="balance-sub" id="bal-sub">Marca tus comidas y actualiza los pasos</div>
+        <div class="ai-msg" id="ai-msg"></div>
+      </div>
+      <div class="balance-nums">
+        <div class="balance-eaten" id="bal-eaten">0 kcal</div>
+        <div class="balance-target" id="bal-target">objetivo: —</div>
+      </div>
+    </div>
+    <div id="ai-thinking" style="display:none;align-items:center;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+      <div class="ai-pulse-dot"></div>
+      <span style="font-size:11px;color:var(--text3)">Claude está analizando...</span>
+    </div>
+  </div>
+  <div class="content" id="plan-content"></div>
+  <button class="fab" onclick="openLogModal()">+</button>
+</div>
+
+<div id="view-shop" class="view">
+  <div class="page-title">Lista de la compra</div>
+  <div class="content" id="shop-content"></div>
+</div>
+
+<div id="view-hist" class="view">
+  <div class="page-title">Historial</div>
+  <div class="content" id="hist-content"></div>
+</div>
+
+<div id="view-favs" class="view">
+  <div class="page-title">Mis platos</div>
+  <div class="content">
+    <div class="profile-card">
+      <div class="profile-row"><span class="profile-lbl">Edad</span><span class="profile-val">58 años</span></div>
+      <div class="profile-row"><span class="profile-lbl">Peso</span><span class="profile-val">93 kg</span></div>
+      <div class="profile-row"><span class="profile-lbl">Altura</span><span class="profile-val">175 cm</span></div>
+      <div class="profile-row"><span class="profile-lbl">Objetivo (8.000 pasos)</span><span class="profile-val green">~1.780 kcal/día</span></div>
+      <div class="profile-row"><span class="profile-lbl">Objetivo (5.000 pasos)</span><span class="profile-val">~1.375 kcal/día</span></div>
+      <div class="profile-row"><span class="profile-lbl">Con 0 pasos (base)</span><span class="profile-val">700 kcal/día</span></div>
+    </div>
+    <div class="fav-section-title">Añadir plato favorito</div>
+    <div class="fav-input-card">
+      <label>Nombre del plato o bebida</label>
+      <input type="text" id="fav-name" placeholder="Ej: Cocido murciano, cerveza, paella...">
+      <label style="margin-top:10px">Calorías aproximadas</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="number" id="fav-kcal" placeholder="Ej: 650" min="0" max="3000" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;color:var(--text);font-family:var(--font)">
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap">vacío = IA estima</span>
+      </div>
+      <label style="margin-top:10px">¿Para qué momento?</label>
+      <select id="fav-moment" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;color:var(--text);font-family:var(--font)">
+        <option value="comida">Comida en restaurante</option>
+        <option value="cena">Cena en casa</option>
+        <option value="almuerzo">Almuerzo en casa</option>
+      </select>
+      <button class="fav-add-btn" id="fav-add-btn" onclick="addFavorite()">Añadir a mis platos</button>
+    </div>
+    <div class="fav-section-title">Mis platos guardados</div>
+    <div class="fav-list" id="fav-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="custom-modal">
+  <div class="modal">
+    <div class="modal-title" id="custom-modal-title">Añadir comida especial</div>
+    <div class="modal-sub">Se marcará en verde como si estuviese en el menú.</div>
+    <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">¿Qué has comido?</label>
+    <input type="text" id="custom-name" placeholder="Ej: Paella de marisco, pizza margarita..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 12px;font-size:14px;color:var(--text);font-family:var(--font);margin-bottom:12px">
+    <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Calorías aproximadas</label>
+    <input type="number" id="custom-kcal" placeholder="Ej: 750" min="0" max="3000" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 12px;font-size:14px;color:var(--text);font-family:var(--font);margin-bottom:4px">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Si no sabes las calorías deja el campo vacío y la IA lo estimará</div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeCustomModal()">Cancelar</button>
+      <button class="btn-primary" onclick="saveCustomMeal()">Guardar y marcar ↗</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="log-modal">
+  <div class="modal">
+    <div class="modal-title">¿Qué has comido fuera del plan?</div>
+    <div class="modal-sub">Cuéntame qué comiste y la IA ajustará las siguientes comidas para compensar.</div>
+    <textarea id="log-text" placeholder="Ej: He comido una paella entera con pan y postre de tarta, y 2 cañas..."></textarea>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeLogModal()">Cancelar</button>
+      <button class="btn-primary" onclick="submitLog()">Calcular y ajustar ↗</button>
+    </div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <div class="tab-item active" id="tab-plan" onclick="switchView('plan')"><span class="tab-icon">🍽</span><span class="tab-lbl">Mi plan</span></div>
+  <div class="tab-item" id="tab-hist" onclick="switchView('hist')"><span class="tab-icon">📊</span><span class="tab-lbl">Historial</span></div>
+  <div class="tab-item" id="tab-shop" onclick="switchView('shop')"><span class="tab-icon">🛒</span><span class="tab-lbl">Compra</span></div>
+  <div class="tab-item" id="tab-favs" onclick="switchView('favs')"><span class="tab-icon">⭐</span><span class="tab-lbl">Mis platos</span></div>
+</div>
+
+<script>
+const USER = {age:58,weight:93,height:175,bmr:1820};
+const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const fullDays = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const todayIdx = (new Date().getDay()+6)%7;
+let currentDay = todayIdx;
+const shopChecked = {};
+
+// --- Storage (window.storage with in-memory fallback) ---
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+function load(key, fallback) {
+  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback; }
+  catch(e) { return fallback; }
+}
+
+let checked = {};
+let favorites = [];
+let dailySteps = {};
+let aiAdjustments = {};
+let weightLog = [];
+let calHistory = {};
+let streakLog = {};
+let customMeals = {};
+let aiMsgCache = {};
+let analyzeTimer = null;
+let summaryShown = false;
+
+// --- Calorie calc ---
+function calcKcal(steps) {
+  // Base budget (0 steps) = 700 kcal. Each step adds 0.135 kcal.
+  // At 8.000 steps (goal) = 700 + 1.080 = 1.780 kcal → matches weight loss target.
+  // At 2.000 steps = 970 kcal → eating plan meals (~1.340) = surplus → RED ✓
+  return Math.round(700 + steps * 0.135);
+}
+function getStepsForDay(i) {
+  const key = 'steps-'+getDateKey(i);
+  return dailySteps[key] !== undefined ? dailySteps[key] : (i === todayIdx ? 0 : 5000);
+}
+
+function getDateKey(dayOffset) {
+  const d = new Date();
+  d.setDate(d.getDate() + (dayOffset - todayIdx));
+  return d.toISOString().slice(0,10);
+}
+
+// --- Plan data (Almuerzo=breakfast, Comida=lunch, Cena=dinner) ---
+const basePlan = [
+  {tip:'Semana nueva — el zarangollo murciano en cena es ligero y reconfortante.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de pechuga de pollo a la plancha',desc:'Pan integral, pechuga fina a la plancha, tomate natural, café',kcal:310,
+     alts:[{name:'Bocadillo de atún con tomate natural',detail:'Pan integral, atún al natural escurrido, tomate · ~280 kcal'},{name:'Fruta de temporada',detail:'Melocotón, albaricoque o naranja · ~80 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Ensalada murciana + segundo a la plancha',desc:'Tomate, atún, huevo, aceitunas de primero · Pescado o carne plancha · 1 caña + 1 vino ok',kcal:580,
+     alts:[{name:'Dorada o lubina al horno',detail:'Pescado entero al horno, patata asada · ~480 kcal'},{name:'Arroz caldero',detail:'Arroz con pescado típico murciano, ración normal · ~580 kcal'}]},
+    {type:'Cena',badge:'home',name:'Zarangollo con pan',desc:'Calabacín y cebolla rehogados con huevo, pan integral tostado',kcal:320,
+     alts:[{name:'Ensalada murciana',detail:'Tomate, atún, huevo duro, aceitunas, AOVE · ~360 kcal'},{name:'Huevos revueltos con jamón',detail:'2 huevos, 40g jamón serrano, tostada · ~350 kcal'}]}
+  ]},
+  {tip:'La olla gitana murciana es perfecta — saciante, con legumbres y verduras.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de jamón york con queso fresco',desc:'Pan integral, jamón york, queso fresco, tomate, café',kcal:300,
+     alts:[{name:'Bocadillo de anchoas con tomate fresco',detail:'Pan integral, anchoas, tomate natural · ~260 kcal'},{name:'Bocadillo de queso fresco con anchoas',detail:'Pan integral, queso fresco, anchoas · ~270 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Olla gitana (garbanzos con verduras)',desc:'Plato murciano típico · Pide ración normal · 1 caña + 1 vino ok',kcal:520,
+     alts:[{name:'Potaje de habichuelas',detail:'Plato murciano de legumbres · ~460 kcal'},{name:'Michirones',detail:'Habas secas especiadas murcianas, media ración · ~420 kcal'}]},
+    {type:'Cena',badge:'home',name:'Sardinas o caballa al natural + ensalada',desc:'1 lata escurrida, ensalada de tomate y lechuga, AOVE',kcal:280,
+     alts:[{name:'Gazpacho murciano + queso fresco',detail:'Gazpacho casero, 60g queso fresco · ~260 kcal'},{name:'Jamón cocido con queso fresco',detail:'80g jamón cocido, queso fresco, tomate · ~300 kcal'}]}
+  ]},
+  {tip:'El arroz caldero es el plato estrella de Murcia — pídelo sin culpa.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de atún con tomate natural',desc:'Pan integral, atún al natural escurrido, tomate, café',kcal:280,
+     alts:[{name:'Bocadillo de sardinas en aceite escurridas',detail:'Pan integral, sardinas bien escurridas, tomate · ~290 kcal'},{name:'Bocadillo de caballa al natural con tomate',detail:'Pan integral, caballa, tomate fresco · ~275 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Arroz caldero (arroz con pescado)',desc:'Plato típico murciano · Ración normal · 1 caña + 1 vino ok',kcal:580,
+     alts:[{name:'Arroz con conejo y caracoles',detail:'Arroz seco murciano, ración normal · ~620 kcal'},{name:'Bacalao con tomate y pimientos',detail:'Bacalao guisado murciano · ~450 kcal'}]},
+    {type:'Cena',badge:'home',name:'Tortilla de patata con ensalada',desc:'Tortilla pequeña de patata, ensalada de tomate y lechuga, AOVE',kcal:390,
+     alts:[{name:'Zarangollo con pan',detail:'Calabacín rehogado con huevo, pan integral · ~320 kcal'},{name:'Ensalada murciana',detail:'Tomate, atún, huevo, aceitunas · ~360 kcal'}]}
+  ]},
+  {tip:'Las alcachofas con jamón son un entrante murciano ligero y elegante.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de pechuga de pollo con queso',desc:'Pan integral, pechuga a la plancha, queso fresco, café',kcal:320,
+     alts:[{name:'Bocadillo de longaniza murciana',detail:'Pan integral, longaniza murciana, tomate · ~350 kcal'},{name:'Bocadillo de queso fresco con anchoas',detail:'Pan integral, queso fresco, anchoas · ~270 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Alcachofas con jamón + conejo al ajillo',desc:'Alcachofas rehogadas de primero · Conejo al ajillo · 1 caña + 1 vino ok',kcal:570,
+     alts:[{name:'Lomo en adobo murciano',detail:'Lomo adobado, guarnición ligera · ~550 kcal'},{name:'Dorada o lubina al horno',detail:'Pescado al horno, patata asada · ~480 kcal'}]},
+    {type:'Cena',badge:'home',name:'Huevos revueltos con jamón',desc:'2 huevos, 40g jamón serrano, champiñones, tostada integral',kcal:350,
+     alts:[{name:'Sardinas o caballa al natural',detail:'1 lata, ensalada tomate y lechuga · ~280 kcal'},{name:'Gazpacho murciano + pan',detail:'Gazpacho casero murciano con pan tostado · ~220 kcal'}]}
+  ]},
+  {tip:'Viernes murciano — la dorada a la sal o el lomo en adobo son lo mejor.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de longaniza murciana',desc:'Pan integral, longaniza murciana, tomate natural, café',kcal:350,
+     alts:[{name:'Bocadillo de anchoas con tomate fresco',detail:'Pan integral, anchoas, tomate · ~260 kcal'},{name:'Fruta de temporada',detail:'Melocotón, albaricoque o naranja · ~80 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Dorada o lubina al horno',desc:'Pescado entero al horno · Patata asada · Ensalada · 1 caña + 1 vino ok',kcal:520,
+     alts:[{name:'Lomo en adobo murciano',detail:'Lomo adobado murciano, guarnición · ~550 kcal'},{name:'Bacalao con tomate y pimientos',detail:'Bacalao guisado murciano · ~450 kcal'}]},
+    {type:'Cena',badge:'home',name:'Ensalada murciana',desc:'Tomate natural, atún, huevo duro, aceitunas, AOVE y vinagre',kcal:360,
+     alts:[{name:'Tortilla de patata con ensalada',detail:'Tortilla pequeña, lechuga, tomate · ~390 kcal'},{name:'Jamón cocido con queso fresco',detail:'80g jamón cocido, queso fresco, tomate · ~300 kcal'}]}
+  ]},
+  {tip:'Sábado murciano — el cordero o el conejo son los platos del fin de semana.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de caballa al natural con tomate',desc:'Pan integral, caballa bien escurrida, tomate fresco, café',kcal:275,
+     alts:[{name:'Bocadillo de sardinas en aceite escurridas',detail:'Pan integral, sardinas escurridas, tomate · ~290 kcal'},{name:'Bocadillo de jamón york con queso fresco',detail:'Pan integral, jamón york, queso fresco · ~300 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Cordero al horno con patatas',desc:'Plato murciano de fin de semana · Ración normal · 1 caña + 1 vino ok',kcal:680,
+     alts:[{name:'Conejo al ajillo',detail:'Conejo guisado murciano, ración normal · ~520 kcal'},{name:'Arroz con conejo y caracoles',detail:'Arroz seco murciano, ración normal · ~620 kcal'}]},
+    {type:'Cena',badge:'home',name:'Zarangollo con pan',desc:'Calabacín y cebolla rehogados con huevo, pan integral',kcal:320,
+     alts:[{name:'Tortas de aceite con jamón',detail:'2 tortas de aceite, 40g jamón serrano · ~340 kcal'},{name:'Huevos revueltos con jamón',detail:'2 huevos, jamón, champiñones · ~350 kcal'}]}
+  ]},
+  {tip:'Domingo murciano — las pelotas o el arroz con conejo son la comida familiar.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de pechuga de pollo con queso',desc:'Pan integral, pechuga a la plancha, queso fresco, café con leche',kcal:320,
+     alts:[{name:'Bocadillo de atún con tomate',detail:'Pan integral, atún al natural, tomate · ~280 kcal'},{name:'Fruta de temporada',detail:'Melocotón, albaricoque o naranja · ~80 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Guiso de pelotas murcianas',desc:'Plato murciano tradicional · Pide ración normal · 1 caña + 1 vino ok',kcal:680,
+     alts:[{name:'Arroz con conejo y caracoles',detail:'Arroz seco murciano, ración normal · ~620 kcal'},{name:'Olla gitana (garbanzos con verduras)',detail:'Plato murciano de legumbres · ~520 kcal'}]},
+    {type:'Cena',badge:'home',name:'Tortilla de patata con ensalada murciana',desc:'Tortilla pequeña de patata, ensalada de tomate, aceitunas y AOVE',kcal:390,
+     alts:[{name:'Ensalada murciana',detail:'Tomate, atún, huevo, aceitunas, AOVE · ~360 kcal'},{name:'Gazpacho murciano + queso fresco',detail:'Gazpacho casero, queso fresco · ~260 kcal'}]}
+  ]}
+];
+
+
+const shopData = [
+  {section:'Carnes y pescados',icon:'🥩',items:[
+    {name:'Pechuga de pollo',qty:'300g'},{name:'Conejo troceado',qty:'500g (para guisos)'},
+    {name:'Lomo de cerdo',qty:'200g'},{name:'Jamón serrano',qty:'150g'},
+    {name:'Jamón york',qty:'100g'},{name:'Longaniza murciana',qty:'150g'},
+    {name:'Sardinas o caballa en lata',qty:'4 latas al natural'},{name:'Atún al natural',qty:'3 latas'},
+    {name:'Anchoas en aceite',qty:'1 lata pequeña'},{name:'Dorada o lubina',qty:'1 pieza (si la semana toca)'}
+  ]},
+  {section:'Huevos y lácteos',icon:'🥚',items:[
+    {name:'Huevos',qty:'1 docena y media'},{name:'Queso fresco',qty:'200g'},
+    {name:'Leche semidesnatada',qty:'1 litro'}
+  ]},
+  {section:'Verduras murcianas',icon:'🥦',items:[
+    {name:'Calabacín',qty:'3 unidades (zarangollo)'},{name:'Tomates',qty:'1,5 kg'},
+    {name:'Cebolla',qty:'4 unidades'},{name:'Alcachofas',qty:'4-6 unidades (si la semana toca)'},
+    {name:'Lechuga o mix',qty:'1 bolsa grande'},{name:'Pimiento rojo y verde',qty:'2 unidades c/u'},
+    {name:'Ajo',qty:'1 cabeza'},{name:'Zanahoria',qty:'500g'}
+  ]},
+  {section:'Frutas',icon:'🍌',items:[
+    {name:'Melocotón o albaricoque',qty:'4-6 unidades (temporada)'},{name:'Naranjas',qty:'1 kg'}
+  ]},
+  {section:'Despensa murciana',icon:'🌾',items:[
+    {name:'Pan integral o masa madre',qty:'1 barra diaria'},{name:'Aceite de oliva virgen extra',qty:'si no tienes'},
+    {name:'Aceitunas',qty:'1 bote'},{name:'Tortas de aceite',qty:'1 paquete'}
+  ]},
+  {section:'Legumbres (para guisos)',icon:'🫘',items:[
+    {name:'Garbanzos cocidos',qty:'2 botes (olla gitana)'},{name:'Habichuelas',qty:'1 bote'},
+    {name:'Habas secas',qty:'200g (michirones)'}
+  ]}
+];
+
+// --- Check key format: "dayIdx-mealIdx" for main, "dayIdx-mealIdx-altIdx" for alts, "dayIdx-mealIdx-custom" for custom ---
+function mealKey(d,m){ return d+'-'+m; }
+function altKey(d,m,a){ return d+'-'+m+'-a'+a; }
+function customKey(d,m){ return d+'-'+m+'-custom'; }
+
+// key: customKey(d,m) → {name, kcal}
+
+function initStorage() {
+  checked       = load('checkedMeals', {});
+  favorites     = load('favs', [{name:'Cocido/puchero murciano',moment:'comida'},{name:'Paella valenciana',moment:'comida'}]);
+  dailySteps    = load('dailySteps', {});
+  aiAdjustments = load('aiAdjustments', {});
+  weightLog     = load('weightLog', []);
+  calHistory    = load('calHistory', {});
+  streakLog     = load('streakLog', {});
+  customMeals   = load('customMeals', {});
+  aiMsgCache    = load('aiMsgCache', {});
+}
+
+let _customDay = 0, _customMeal = 0;
+function openCustomModal(dayIdx, mealIdx, mealType) {
+  _customDay = dayIdx; _customMeal = mealIdx;
+  document.getElementById('custom-modal-title').textContent = 'Añadir comida especial · ' + mealType;
+  document.getElementById('custom-name').value = '';
+  document.getElementById('custom-kcal').value = '';
+  document.getElementById('custom-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('custom-name').focus(), 100);
+}
+function closeCustomModal() { document.getElementById('custom-modal').classList.remove('show'); }
+
+async function saveCustomMeal() {
+  const name = document.getElementById('custom-name').value.trim();
+  if (!name) return;
+  let kcal = parseInt(document.getElementById('custom-kcal').value) || 0;
+
+  // If no kcal provided, estimate via AI
+  if (!kcal) {
+    closeCustomModal();
+    document.getElementById('ai-loading').classList.add('show');
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,messages:[{role:'user',content:'Estima las calorías de esta comida para una persona de 93kg. Solo responde con el número entero, sin texto: "'+name+'"'}]})});
+      const data = await res.json();
+      kcal = parseInt(data.content.map(b=>b.text||'').join('').trim()) || 600;
+    } catch(e) { kcal = 600; }
+    document.getElementById('ai-loading').classList.remove('show');
+  } else {
+    closeCustomModal();
+  }
+
+  const ck = customKey(_customDay, _customMeal);
+  customMeals[ck] = {name, kcal};
+  save('customMeals', customMeals);
+
+  // Auto-mark it and deselect others
+  const mk = mealKey(_customDay, _customMeal);
+  const m = basePlan[_customDay].meals[_customMeal];
+  delete checked[mk];
+  m.alts.forEach((_,ai) => delete checked[altKey(_customDay,_customMeal,ai)]);
+  checked[ck] = true;
+  save('checkedMeals', checked);
+
+  updateProgress();
+  renderPlan();
+}
+
+function todayKey() { return new Date().toISOString().slice(0,10); }
+
+function saveCalHistoryToday() {
+  const key = todayKey();
+  const steps = getStepsForDay(todayIdx);
+  const target = calcKcal(steps);
+  const eaten = getDayKcalEaten(todayIdx);
+  calHistory[key] = {target, eaten};
+  save('calHistory', calHistory);
+}
+
+function markStreakToday() {
+  const allDone = countDayDone(todayIdx) === 3;
+  streakLog[todayKey()] = allDone;
+  save('streakLog', streakLog);
+}
+
+function countDayDone(dayIdx) {
+  return basePlan[dayIdx].meals.reduce((n, m, mi) => {
+    const hasMeal   = checked[mealKey(dayIdx,mi)];
+    const hasAlt    = m.alts.some((_,ai) => checked[altKey(dayIdx,mi,ai)]);
+    const hasCustom = checked[customKey(dayIdx,mi)];
+    return n + (hasMeal||hasAlt||hasCustom ? 1 : 0);
+  }, 0);
+}
+
+function getMarkedKcal(dayIdx) {
+  return basePlan[dayIdx].meals.reduce((t, m, mi) => {
+    const adj  = aiAdjustments[dayIdx];
+    const adjM = adj && adj.meals && adj.meals[mi];
+    const base = adjM ? adjM.kcal : m.kcal;
+    const ck   = customKey(dayIdx, mi);
+    const mk   = mealKey(dayIdx, mi);
+
+    if (checked[ck]) {
+      const cm = customMeals[ck];
+      return t + (cm ? cm.kcal : base);
+    }
+    const altIdx = m.alts.findIndex((_,ai) => checked[altKey(dayIdx,mi,ai)]);
+    if (altIdx >= 0) {
+      const kcalStr = m.alts[altIdx].detail.match(/~(\d+) kcal/);
+      return t + (kcalStr ? parseInt(kcalStr[1]) : base);
+    }
+    if (checked[mk]) return t + base;
+    return t; // not marked → don't count
+  }, 0);
+}
+
+// Alias used by saveCalHistoryToday
+function getDayKcalEaten(dayIdx) { return getMarkedKcal(dayIdx); }
+
+function calcStreak() {
+  let current=0, best=0;
+  const d = new Date();
+  while(current <= 365) {
+    const key = d.toISOString().slice(0,10);
+    if (streakLog[key]===true) { current++; d.setDate(d.getDate()-1); } else break;
+  }
+  const all = Object.keys(streakLog).sort();
+  let run=0;
+  all.forEach(k => { if(streakLog[k]){run++;best=Math.max(best,run);}else{run=0;} });
+  return {current,best};
+}
+
+const KCAL_PER_STEP = 0.057;
+const STEP_GOAL = 8000;
+const REWARD_THRESHOLD = 3500; // kcal deficit to earn a free meal (~0.5kg)
+
+function getCumulativeBalance() {
+  return Object.keys(calHistory).reduce((sum, key) => {
+    return sum + (calHistory[key].target - calHistory[key].eaten);
+  }, 0);
+}
+
+function renderBalance() {
+  const steps   = getStepsForDay(currentDay);
+  const target  = calcKcal(steps);
+  const eaten   = getMarkedKcal(currentDay);
+  const marked  = countDayDone(currentDay);
+  const cumul   = getCumulativeBalance();
+
+  const bar     = document.getElementById('balance-bar');
+  const dot     = document.getElementById('bal-dot');
+  const title   = document.getElementById('bal-title');
+  const sub     = document.getElementById('bal-sub');
+  const eatenEl = document.getElementById('bal-eaten');
+  const targetEl= document.getElementById('bal-target');
+  if (!bar) return;
+
+  const todayBalance = target - eaten;
+  const totalBalance = cumul + todayBalance;
+  const stepsFaltanGoal = Math.max(0, STEP_GOAL - steps);
+  const daysLogged = Object.keys(calHistory).length;
+
+  eatenEl.textContent  = eaten > 0 ? eaten.toLocaleString() + ' kcal hoy' : '0 kcal marcadas';
+  targetEl.textContent = 'límite hoy: ' + target.toLocaleString() + ' kcal · ' + steps.toLocaleString() + ' pasos';
+
+  if (marked === 0 && steps === 0 && daysLogged === 0) {
+    bar.className='balance-bar neutral'; dot.className='balance-dot neutral'; title.className='balance-title neutral';
+    title.textContent = 'Sin datos aún';
+    sub.textContent   = 'Marca tus comidas y actualiza los pasos para ver tu balance.';
+    return;
+  }
+
+  const cumulStr = daysLogged > 0
+    ? ' · Total ' + daysLogged + ' días: ' + (totalBalance >= 0 ? '−' : '+') + Math.abs(Math.round(totalBalance)).toLocaleString() + ' kcal'
+    : '';
+
+  // 🎉 REWARD: big cumulative deficit earned
+  if (totalBalance >= REWARD_THRESHOLD) {
+    bar.className='balance-bar green'; dot.className='balance-dot green'; title.className='balance-title green';
+    title.textContent = '🎉 ¡Comida libre ganada!';
+    sub.textContent   = 'Llevas −' + Math.round(totalBalance).toLocaleString() + ' kcal de déficit acumulado. Te has ganado una comida libre sin culpa. Disfrútala y sigue el plan mañana.';
+    return;
+  }
+
+  if (totalBalance >= 0) {
+    bar.className='balance-bar green'; dot.className='balance-dot green'; title.className='balance-title green';
+    if (stepsFaltanGoal > 0 && marked > 0) {
+      title.textContent = 'Bien de calorías · faltan ' + stepsFaltanGoal.toLocaleString() + ' pasos';
+    } else if (steps >= STEP_GOAL) {
+      title.textContent = '¡Todo en orden hoy!';
+    } else {
+      title.textContent = 'Balance positivo';
+    }
+    sub.textContent = 'Hoy: ' + (todayBalance >= 0
+      ? 'margen de ' + Math.round(todayBalance).toLocaleString() + ' kcal'
+      : 'te has pasado ' + Math.abs(Math.round(todayBalance)).toLocaleString() + ' kcal')
+      + cumulStr;
+  } else {
+    // Over budget — show recovery plan
+    bar.className='balance-bar red'; dot.className='balance-dot red'; title.className='balance-title red';
+    const stepsExtra = Math.round(Math.abs(totalBalance) / KCAL_PER_STEP);
+    const daysToRecover = Math.ceil(Math.abs(totalBalance) / 400); // days at 400 kcal/day deficit
+    title.textContent = 'Superávit de ' + Math.abs(Math.round(totalBalance)).toLocaleString() + ' kcal acumuladas';
+    sub.textContent   = (todayBalance >= 0
+      ? 'Hoy vas bien. '
+      : 'Hoy te has pasado ' + Math.abs(Math.round(todayBalance)).toLocaleString() + ' kcal. ')
+      + 'Para recuperar: ' + daysToRecover + ' días siguiendo el plan, o ~' + stepsExtra.toLocaleString() + ' pasos extra repartidos.';
+  }
+}
+
+function triggerAutoAnalysis() {
+  clearTimeout(analyzeTimer);
+  analyzeTimer = setTimeout(autoAnalyze, 1200); // debounce 1.2s
+}
+
+async function autoAnalyze() {
+  const steps    = getStepsForDay(currentDay);
+  const target   = calcKcal(steps);
+  const eaten    = getMarkedKcal(currentDay);
+  const marked   = countDayDone(currentDay);
+  const cumul    = getCumulativeBalance();
+  const {current: streak} = calcStreak();
+
+  if (marked === 0 && steps === 0) return;
+
+  const thinking = document.getElementById('ai-thinking');
+  const msgEl    = document.getElementById('ai-msg');
+  if (thinking) thinking.style.display = 'flex';
+  if (msgEl)    { msgEl.classList.add('loading'); }
+
+  const markedMeals = basePlan[currentDay].meals.map((m,mi) => {
+    const ck = customKey(currentDay,mi);
+    const mk = mealKey(currentDay,mi);
+    const ai = m.alts.findIndex((_,ai)=>checked[altKey(currentDay,mi,ai)]);
+    if (checked[ck] && customMeals[ck]) return m.type+': '+customMeals[ck].name+' (especial)';
+    if (checked[mk]) return m.type+': '+m.name;
+    if (ai>=0) return m.type+': '+m.alts[ai].name+' (alt)';
+    return null;
+  }).filter(Boolean).join(', ');
+
+  const rewardProgress = cumul > 0 ? Math.round((cumul/3500)*100) : 0;
+
+  const prompt = `Eres un coach de nutrición amigable y motivador. Datos del usuario hoy:
+- Pasos: ${steps.toLocaleString()} de ${STEP_GOAL.toLocaleString()} objetivo
+- Calorías comidas: ${eaten} kcal de ${target} kcal objetivo
+- Comidas marcadas: ${markedMeals || 'ninguna aún'}
+- Déficit acumulado total: ${Math.round(cumul)} kcal
+- Racha: ${streak} días consecutivos
+- Progreso hacia comida libre: ${rewardProgress}%
+
+Dame UN mensaje corto (máximo 2 frases, tono cercano y positivo) que:
+${cumul >= 3500 ? '- Le diga que se ha ganado una comida libre de recompensa' :
+  rewardProgress > 60 ? '- Le anime mencionando que está cerca de la recompensa ('+rewardProgress+'%)' :
+  eaten > target ? '- Le sugiera cómo compensar el exceso de forma concreta' :
+  steps < STEP_GOAL && marked > 0 ? '- Le motive a completar los pasos con una idea práctica' :
+  '- Refuerce lo bien que lo está haciendo y qué le falta para el verde'}
+Solo el mensaje, sin comillas ni prefijos.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:120,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const msg = data.content.map(b=>b.text||'').join('').trim();
+    if (msg && msgEl) {
+      msgEl.textContent = msg;
+      msgEl.classList.remove('loading');
+      aiMsgCache[currentDay] = msg;
+      save('aiMsgCache', aiMsgCache);
+    }
+  } catch(e) {
+    if (msgEl) { msgEl.textContent = ''; msgEl.classList.remove('loading'); }
+  }
+  if (thinking) thinking.style.display = 'none';
+}
+
+function updateProgress() {
+  const done = countDayDone(currentDay);
+  const total = 3;
+  document.getElementById('prog-fill').style.width = Math.round(done/total*100)+'%';
+  document.getElementById('prog-text').textContent = done+' / '+total;
+  renderBalance();
+  renderStats();
+  if (currentDay===todayIdx) {
+    markStreakToday();
+    saveCalHistoryToday();
+    renderStreak();
+  }
+  if (currentDay===todayIdx) triggerAutoAnalysis();
+}
+
+function renderStats() {
+  const {current} = calcStreak();
+  const todaySteps  = getStepsForDay(currentDay);
+  const todayTarget = calcKcal(todaySteps);
+  const todayEaten  = getMarkedKcal(currentDay);
+  const diff = todayTarget - todayEaten; // positive = deficit (good), negative = surplus (bad)
+
+  const streakEl = document.getElementById('streak-num');
+  const eatenEl  = document.getElementById('stat-eaten-val');
+  const targetEl = document.getElementById('stat-target-val');
+  const diffEl   = document.getElementById('stat-diff-val');
+  if (!streakEl) return;
+
+  streakEl.textContent = current + '🔥';
+
+  // Eaten today: red
+  eatenEl.textContent = todayEaten > 0 ? todayEaten.toLocaleString() : '0';
+
+  // Target today: neutral
+  targetEl.textContent = todayTarget.toLocaleString();
+
+  // Diff color logic:
+  // Red   → eating over target (surplus)
+  // Amber → under target but steps below goal (not enough movement)
+  // Green → under target AND steps at/above goal
+  if (todayEaten === 0) {
+    diffEl.textContent = '—';
+    diffEl.style.color = 'var(--text3)';
+  } else if (diff < 0) {
+    // Surplus — red
+    diffEl.textContent = '+' + Math.abs(Math.round(diff));
+    diffEl.style.color = '#e24b4a';
+  } else if (todaySteps < STEP_GOAL) {
+    // Calorie deficit but not enough steps — amber
+    diffEl.textContent = '-' + Math.round(diff);
+    diffEl.style.color = 'var(--amber)';
+  } else {
+    // Good deficit AND steps on target — green
+    diffEl.textContent = '-' + Math.round(diff);
+    diffEl.style.color = 'var(--green)';
+  }
+}
+
+function renderStreak() { renderStats(); }
+
+function updateSteps() {
+  const val = parseInt(document.getElementById('steps-field').value)||0;
+  const key = 'steps-'+getDateKey(currentDay);
+  dailySteps[key] = val;
+  save('dailySteps', dailySteps);
+  renderPlan();
+  if (currentDay===todayIdx) triggerAutoAnalysis();
+}
+
+function renderPlan() {
+  const steps = getStepsForDay(currentDay);
+  const kcalTarget = calcKcal(steps);
+  const d = basePlan[currentDay];
+  const adj = aiAdjustments[currentDay];
+
+  const now = new Date();
+  const dateObj = new Date(now);
+  dateObj.setDate(now.getDate() + (currentDay - todayIdx));
+  document.getElementById('top-date').textContent = dateObj.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('top-day').textContent = fullDays[currentDay];
+  document.getElementById('top-kcal').textContent = '~'+kcalTarget.toLocaleString()+' kcal';
+  document.getElementById('steps-field').value = steps;
+
+  const c = document.getElementById('plan-content');
+  c.innerHTML = '';
+
+  // AI loading
+  const loading = document.createElement('div');
+  loading.className='ai-loading'; loading.id='ai-loading';
+  loading.innerHTML='<div class="spinner"></div><span class="loading-text">La IA está ajustando tu plan...</span>';
+  c.appendChild(loading);
+
+  // AI banner
+  if(adj) {
+    const banner = document.createElement('div');
+    banner.className='ai-banner show';
+    const stepsMsg = adj.stepsExtra > 0
+      ? '<div style="font-size:12px;color:var(--amber);margin-top:6px;font-weight:500">👟 Pasos extra recomendados hoy: +' + adj.stepsExtra.toLocaleString() + '</div>'
+      : '';
+    banner.innerHTML='<button class="ai-banner-close" onclick="clearAdjustment('+currentDay+')">×</button>'
+      +'<div class="ai-banner-title">Plan ajustado por la IA</div>'
+      +'<div class="ai-banner-text">'+adj.explanation+'</div>'
+      +stepsMsg;
+    c.appendChild(banner);
+  }
+
+  // Drinks
+  const note = document.createElement('div');
+  note.className='drinks-note';
+  note.innerHTML='🍺 <span>1 caña antes de comer + 1 copa de vino: <strong>~200 kcal</strong> — ya incluidas en la Comida del plan.</span>';
+  c.appendChild(note);
+
+  d.meals.forEach((m, mi) => {
+    const adjM  = adj && adj.meals && adj.meals[mi];
+    const meal  = adjM ? {...m, ...adjM, alts:m.alts} : m;
+    const mk    = mealKey(currentDay, mi);
+    const ck    = customKey(currentDay, mi);
+    const mainDone   = !!checked[mk];
+    const altDone    = m.alts.findIndex((_,ai) => checked[altKey(currentDay,mi,ai)]);
+    const customDone = !!checked[ck];
+    const anyDone    = mainDone || altDone >= 0 || customDone;
+    const cm         = customMeals[ck];
+
+    let selectedName = null, selectedKcal = null;
+    if (customDone && cm)  { selectedName = cm.name; selectedKcal = cm.kcal; }
+    else if (mainDone)     { selectedName = meal.name; selectedKcal = meal.kcal; }
+    else if (altDone >= 0) { selectedName = m.alts[altDone].name; const ks = m.alts[altDone].detail.match(/~(\d+) kcal/); selectedKcal = ks ? parseInt(ks[1]) : meal.kcal; }
+
+    const block = document.createElement('div');
+    block.className = 'meal-block';
+
+    const meta = document.createElement('div');
+    meta.className = 'meal-meta';
+    meta.innerHTML = '<span class="meal-type-lbl">'+meal.type+'</span>'
+      +'<span class="badge badge-'+(meal.badge==='home'?'home':'rest')+'">'+(meal.badge==='home'?'en casa':'restaurante')+'</span>'
+      +(adjM?'<span class="badge badge-adjusted">ajustado</span>':'');
+    block.appendChild(meta);
+
+    const card = document.createElement('div');
+    card.className = 'meal-card' + (adjM?' adjusted':'');
+
+    // ── COLLAPSED ROW (always visible) ──
+    const topRow = document.createElement('div');
+    topRow.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;gap:8px;cursor:pointer';
+
+    if (selectedName) {
+      // Only show what was eaten in green
+      topRow.innerHTML = '<div style="flex:1">'
+        +'<div style="font-size:12px;color:var(--text3);margin-bottom:3px">'+meal.type+'</div>'
+        +'<div style="font-size:14px;font-weight:500;color:var(--green);display:flex;align-items:center;gap:5px">'
+        +'<span style="font-size:12px">✓</span>'+selectedName
+        +(selectedKcal ? '<span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:4px">~'+selectedKcal+' kcal</span>' : '')
+        +'</div></div><span class="chevron" style="margin-top:2px;color:var(--green)">⌄</span>';
+    } else {
+      // Nothing selected — show plan name + desc
+      topRow.innerHTML = '<div style="flex:1">'
+        +'<div style="font-size:14px;font-weight:500;color:var(--text);line-height:1.3">'+meal.name+'</div>'
+        +'<div style="font-size:12px;color:var(--text3);margin-top:3px">'+meal.desc+'</div>'
+        +'</div><span class="chevron" style="margin-top:2px">⌄</span>';
+    }
+    topRow.addEventListener('click', () => card.classList.toggle('expanded'));
+    card.appendChild(topRow);
+
+    // ── EXPANDED CONTENT ──
+    const expWrap = document.createElement('div');
+    expWrap.className = 'exp-wrap';
+
+    const descEl = document.createElement('div');
+    descEl.style.cssText = 'font-size:12px;color:var(--text2);padding:10px 0 10px;border-bottom:1px solid var(--border)';
+    descEl.textContent = meal.desc;
+    expWrap.appendChild(descEl);
+
+    function makeOption(key, name, detail, kcal, isDone, onTap) {
+      const row = document.createElement('div');
+      row.className = 'option-row' + (isDone ? ' done' : '');
+      row.innerHTML = '<div class="opt-cb">'+(isDone?'✓':'')+'</div>'
+        +'<div class="opt-info"><div class="opt-name">'+name+'</div>'
+        +(detail?'<div class="opt-detail">'+detail+'</div>':'')+'</div>'
+        +'<div class="opt-kcal">~'+kcal+' kcal</div>';
+      row.addEventListener('click', e => { e.stopPropagation(); onTap(); });
+      return row;
+    }
+
+    const mainLbl = document.createElement('div');
+    mainLbl.style.cssText = 'font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:10px 0 6px';
+    mainLbl.textContent = 'Plato del día';
+    expWrap.appendChild(mainLbl);
+    expWrap.appendChild(makeOption(mk, meal.name, '', meal.kcal, mainDone, () => {
+      m.alts.forEach((_,ai) => delete checked[altKey(currentDay,mi,ai)]);
+      delete checked[ck];
+      checked[mk] = !checked[mk];
+      if (!checked[mk]) delete checked[mk];
+      save('checkedMeals', checked); updateProgress(); renderPlan();
+    }));
+
+    const altsLbl = document.createElement('div');
+    altsLbl.style.cssText = 'font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:10px 0 6px;border-top:1px solid var(--border);margin-top:6px';
+    altsLbl.textContent = 'Alternativas';
+    expWrap.appendChild(altsLbl);
+    m.alts.forEach((a, ai) => {
+      const ak = altKey(currentDay, mi, ai);
+      const kcalStr = a.detail.match(/~(\d+) kcal/);
+      const kcal = kcalStr ? parseInt(kcalStr[1]) : meal.kcal;
+      expWrap.appendChild(makeOption(ak, a.name, a.detail.replace(/\s*·\s*~\d+ kcal/,''), kcal, !!checked[ak], () => {
+        m.alts.forEach((_,i) => { if(i!==ai) delete checked[altKey(currentDay,mi,i)]; });
+        delete checked[mk]; delete checked[ck];
+        checked[ak] = !checked[ak];
+        if (!checked[ak]) delete checked[ak];
+        save('checkedMeals', checked); updateProgress(); renderPlan();
+      }));
+    });
+
+    if (cm) {
+      const customLbl = document.createElement('div');
+      customLbl.style.cssText = 'font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--amber);padding:10px 0 6px;border-top:1px solid var(--border);margin-top:6px';
+      customLbl.textContent = 'Comida especial';
+      expWrap.appendChild(customLbl);
+      expWrap.appendChild(makeOption(ck, cm.name, '', cm.kcal, customDone, () => {
+        delete checked[mk]; m.alts.forEach((_,ai) => delete checked[altKey(currentDay,mi,ai)]);
+        checked[ck] = !checked[ck];
+        if (!checked[ck]) delete checked[ck];
+        save('checkedMeals', checked); updateProgress(); renderPlan();
+      }));
+    }
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-custom-btn';
+    addBtn.textContent = '+ Añadir comida especial';
+    addBtn.addEventListener('click', e => { e.stopPropagation(); openCustomModal(currentDay, mi, meal.type); });
+    expWrap.appendChild(addBtn);
+
+    card.appendChild(expWrap);
+    block.appendChild(card);
+    c.appendChild(block);
+  });
+
+  const tip = document.createElement('div');
+  tip.className='tip-card'; tip.textContent=d.tip;
+  c.appendChild(tip);
+
+  updateProgress();
+  renderStreak();
+  renderBalance();
+
+  // Restore cached AI message for this day
+  const msgEl = document.getElementById('ai-msg');
+  if (msgEl && aiMsgCache[currentDay]) {
+    msgEl.textContent = aiMsgCache[currentDay];
+  }
+}
+
+// --- Daily summary at 21:00 ---
+function checkDailySummary() {
+  const now = new Date();
+  const hour = now.getHours();
+  const todayKey2 = todayKey();
+  const alreadyShown = aiMsgCache['summary-'+todayKey2];
+  if (hour >= 21 && !alreadyShown && !summaryShown && currentDay === todayIdx) {
+    summaryShown = true;
+    generateDailySummary();
+  }
+}
+
+async function generateDailySummary() {
+  const steps  = getStepsForDay(todayIdx);
+  const target = calcKcal(steps);
+  const eaten  = getMarkedKcal(todayIdx);
+  const cumul  = getCumulativeBalance();
+  const {current: streak} = calcStreak();
+
+  const markedMeals = basePlan[todayIdx].meals.map((m,mi) => {
+    const ck = customKey(todayIdx,mi);
+    const mk = mealKey(todayIdx,mi);
+    const ai = m.alts.findIndex((_,ai)=>checked[altKey(todayIdx,mi,ai)]);
+    if (checked[ck] && customMeals[ck]) return m.type+': '+customMeals[ck].name;
+    if (checked[mk]) return m.type+': '+m.name;
+    if (ai>=0) return m.type+': '+m.alts[ai].name;
+    return m.type+': sin registrar';
+  }).join(' · ');
+
+  const prompt = `Eres un coach de nutrición. Resumen del día del usuario (93kg, objetivo perder peso):
+- Pasos: ${steps.toLocaleString()} de ${STEP_GOAL.toLocaleString()} objetivo
+- Calorías: ${eaten} comidas / ${target} objetivo
+- Comidas: ${markedMeals}
+- Racha: ${streak} días · Déficit acumulado: ${Math.round(cumul)} kcal
+
+Escribe un resumen del día en 3 frases máximo: 1) cómo ha ido hoy, 2) un consejo concreto para mañana, 3) motivación. Tono cercano, sin emojis. Solo el texto.`;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'summary-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;display:flex;align-items:flex-end';
+  overlay.innerHTML = `<div style="background:var(--bg2);border-radius:20px 20px 0 0;padding:22px 20px 44px;width:100%">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:10px">Resumen del día · ${new Date().toLocaleDateString('es-ES',{weekday:'long'})}</div>
+    <div id="summary-text" style="font-size:14px;color:var(--text2);line-height:1.7">
+      <div style="display:flex;align-items:center;gap:8px"><div class="ai-pulse-dot"></div><span style="font-size:13px;color:var(--text3)">Claude está generando tu resumen...</span></div>
+    </div>
+    <button onclick="closeSummary()" style="margin-top:18px;width:100%;padding:13px;background:var(--green);border:none;border-radius:var(--radius-sm);color:#fff;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer">Entendido</button>
+  </div>`;
+  document.body.appendChild(overlay);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const msg = data.content.map(b=>b.text||'').join('').trim();
+    const textEl = document.getElementById('summary-text');
+    if (textEl && msg) textEl.textContent = msg;
+    aiMsgCache['summary-'+todayKey()] = msg;
+    save('aiMsgCache', aiMsgCache);
+  } catch(e) {
+    const textEl = document.getElementById('summary-text');
+    if (textEl) textEl.textContent = 'No se pudo conectar con Claude. Revisa tu conexión.';
+  }
+}
+
+function closeSummary() {
+  const overlay = document.getElementById('summary-overlay');
+  if (overlay) overlay.remove();
+}
+
+function buildDayNav() {
+  const nav = document.getElementById('day-nav');
+  nav.innerHTML='';
+  days.forEach((d,i) => {
+    const b = document.createElement('button');
+    b.className='day-btn'+(i===currentDay?' active':'')+(i===todayIdx&&i!==currentDay?' today':'');
+    b.textContent=d+(i===todayIdx?' ·':'');
+    b.addEventListener('click', ()=>{ currentDay=i; buildDayNav(); renderPlan(); nav.children[i].scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); });
+    nav.appendChild(b);
+  });
+}
+
+// --- AI log ---
+function openLogModal(){ document.getElementById('log-modal').classList.add('show'); }
+function closeLogModal(){ document.getElementById('log-modal').classList.remove('show'); }
+
+async function submitLog() {
+  const text = document.getElementById('log-text').value.trim();
+  if(!text) return;
+  closeLogModal();
+  document.getElementById('ai-loading').classList.add('show');
+  const steps = getStepsForDay(currentDay);
+  const kcalTarget = calcKcal(steps);
+  const faves = favorites.map(f=>f.name).join(', ');
+  const cumul = getCumulativeBalance();
+  const cumulInfo = cumul >= 0
+    ? 'Lleva un déficit acumulado de ' + Math.round(cumul) + ' kcal (va bien).'
+    : 'Lleva un superávit acumulado de ' + Math.abs(Math.round(cumul)) + ' kcal (necesita recuperar).';
+
+  const prompt = `Eres un nutricionista. Datos del usuario: 58 años, 93kg, 175cm, objetivo pérdida de peso. Objetivo de pasos diario: 8.000.
+Objetivo calórico hoy: ${kcalTarget} kcal (${steps} pasos).
+Plan base: Almuerzo(${basePlan[currentDay].meals[0].kcal}kcal), Comida(${basePlan[currentDay].meals[1].kcal}kcal), Cena(${basePlan[currentDay].meals[2].kcal}kcal).
+${cumulInfo}
+Platos favoritos: ${faves}.
+Ha comido esto fuera del plan o en una celebración: "${text}".
+Ajusta cena hoy y los próximos 2 días para recuperar el balance. Si el superávit es grande sugiere también cuántos pasos extra debería dar. Solo JSON sin texto extra:
+{"explanation":"max 2 frases con consejo claro","stepsExtra":0,"today":{"meals":[null,null,{"name":"","desc":"","kcal":0}]},"tomorrow":{"explanation":"","meals":[{"name":"","desc":"","kcal":0},null,{"name":"","desc":"","kcal":0}]},"dayAfter":{"explanation":"","meals":[{"name":"","desc":"","kcal":0},null,{"name":"","desc":"","kcal":0}]}}`;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data = await res.json();
+    const raw = data.content.map(b=>b.text||'').join('');
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    if(parsed.today){ aiAdjustments[currentDay]={explanation:parsed.explanation,meals:parsed.today.meals,stepsExtra:parsed.stepsExtra||0}; }
+    const tom = (currentDay+1)%7;
+    if(parsed.tomorrow){ aiAdjustments[tom]={explanation:parsed.tomorrow.explanation,meals:parsed.tomorrow.meals}; }
+    const dat = (currentDay+2)%7;
+    if(parsed.dayAfter){ aiAdjustments[dat]={explanation:parsed.dayAfter.explanation,meals:parsed.dayAfter.meals}; }
+    save('aiAdjustments', aiAdjustments);
+  } catch(e){ console.error(e); }
+  document.getElementById('log-text').value='';
+  document.getElementById('ai-loading').classList.remove('show');
+  renderPlan();
+}
+
+function clearAdjustment(dayIdx) {
+  delete aiAdjustments[dayIdx];
+  save('aiAdjustments', aiAdjustments);
+  renderPlan();
+}
+
+// --- Shop ---
+function renderShop() {
+  const c = document.getElementById('shop-content'); c.innerHTML='';
+  shopData.forEach((sec,si) => {
+    const s = document.createElement('div'); s.className='shop-section';
+    s.innerHTML='<div class="shop-sec-title">'+sec.icon+' '+sec.section+'</div>';
+    sec.items.forEach((item,ii) => {
+      const key='shop-'+si+'-'+ii;
+      const el=document.createElement('div');
+      el.className='shop-item'+(shopChecked[key]?' checked':'');
+      el.innerHTML='<div class="shop-cb">✓</div><div><div class="shop-name">'+item.name+'</div><div class="shop-qty">'+item.qty+'</div></div>';
+      el.addEventListener('click',()=>{ shopChecked[key]=!shopChecked[key]; el.classList.toggle('checked',shopChecked[key]); });
+      s.appendChild(el);
+    });
+    c.appendChild(s);
+  });
+  const rb=document.createElement('button'); rb.className='reset-btn'; rb.textContent='Reiniciar lista';
+  rb.addEventListener('click',()=>{ Object.keys(shopChecked).forEach(k=>delete shopChecked[k]); renderShop(); });
+  c.appendChild(rb);
+}
+
+// --- Favs ---
+function renderFavs() {
+  const list=document.getElementById('fav-list'); list.innerHTML='';
+  if(!favorites.length){ list.innerHTML='<p style="font-size:13px;color:var(--text3)">Aún no tienes platos guardados.</p>'; return; }
+  const ml={comida:'Comida restaurante',cena:'Cena en casa',almuerzo:'Almuerzo en casa'};
+  favorites.forEach((f,i)=>{
+    const el=document.createElement('div'); el.className='fav-item';
+    const kcalHtml = f.kcal > 0
+      ? ' · <span style="color:var(--green);font-weight:500">~'+f.kcal+' kcal</span>'
+      : ' · <button data-est="'+i+'" onclick="estimateFavKcal('+i+')" style="background:var(--amber-dim);border:1px solid rgba(240,160,48,0.3);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--amber);cursor:pointer;font-family:var(--font)">Estimar kcal ↗</button>';
+    el.innerHTML='<div style="flex:1"><div class="fav-item-name">'+f.name+'</div>'
+      +'<div class="fav-item-type">'+ml[f.moment]+kcalHtml+'</div></div>'
+      +'<button class="fav-del" onclick="removeFav('+i+')">×</button>';
+    list.appendChild(el);
+  });
+}
+
+async function addFavorite(){
+  const name=document.getElementById('fav-name').value.trim();
+  const moment=document.getElementById('fav-moment').value;
+  if(!name) return;
+  let kcal = parseInt(document.getElementById('fav-kcal').value) || 0;
+  const btn = document.getElementById('fav-add-btn');
+  btn.textContent = 'Añadiendo...'; btn.disabled = true;
+
+  if(!kcal) {
+    kcal = await estimateKcal(name);
+  }
+
+  favorites.push({name, moment, kcal});
+  save('favs', favorites);
+  document.getElementById('fav-name').value='';
+  document.getElementById('fav-kcal').value='';
+  btn.textContent='Añadir a mis platos'; btn.disabled=false;
+  renderFavs();
+}
+
+async function estimateKcal(name) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:20,
+        messages:[{role:'user',content:'Número de calorías de "'+name+'" ración normal. Solo el número entero sin nada más.'}]})});
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const txt = data.content.map(b=>b.text||'').join('').trim();
+    const num = parseInt(txt.replace(/[^\d]/g,''));
+    return (num > 0 && num < 5000) ? num : 0;
+  } catch(e) { return 0; }
+}
+
+async function estimateFavKcal(i) {
+  const btn = document.querySelector('[data-est="'+i+'"]');
+  if(btn){ btn.textContent='Estimando...'; btn.disabled=true; }
+  let kcal = await estimateKcal(favorites[i].name);
+  if (!kcal) {
+    // Fallback: ask user manually
+    const manual = prompt('No pude estimar las kcal de "'+favorites[i].name+'".\nIntrodúcelas tú manualmente:');
+    kcal = parseInt(manual) || 0;
+  }
+  if (kcal > 0) {
+    favorites[i].kcal = kcal;
+    save('favs', favorites);
+  }
+  renderFavs();
+}
+
+function removeFav(i){ favorites.splice(i,1); save('favs',favorites); renderFavs(); }
+
+// --- Historial ---
+function renderHist() {
+  const c=document.getElementById('hist-content'); c.innerHTML='';
+  const {current,best}=calcStreak();
+  const kgLost = weightLog.length>=2 ? (weightLog[0].kg-weightLog[weightLog.length-1].kg).toFixed(1) : null;
+
+  // Streak card
+  const sc=document.createElement('div'); sc.className='hist-card';
+  sc.style.cssText='display:flex;align-items:center;gap:16px;padding:16px';
+  sc.innerHTML=`<div style="font-size:36px">🔥</div><div style="flex:1"><div style="font-size:28px;font-weight:500;color:var(--amber);line-height:1">${current}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">días de racha · mejor: <strong style="color:var(--text)">${best}</strong></div></div>${kgLost!==null?`<div style="text-align:right"><div style="font-size:22px;font-weight:500;color:var(--green)">-${kgLost} kg</div><div style="font-size:11px;color:var(--text3)">desde el inicio</div></div>`:''}`;
+  c.appendChild(sc);
+
+  // Cal history
+  const allDates=Object.keys(calHistory).sort();
+  const calTitle=document.createElement('div'); calTitle.className='hist-section-title'; calTitle.style.marginTop='4px';
+  calTitle.textContent='Calorías · historial completo'; c.appendChild(calTitle);
+
+  if(allDates.length===0){
+    const nd=document.createElement('div'); nd.className='hist-card';
+    nd.innerHTML='<div class="no-data">Los datos aparecen aquí cada día que uses la app.</div>'; c.appendChild(nd);
+  } else {
+    const totalDef=allDates.reduce((s,k)=>s+(calHistory[k].target-calHistory[k].eaten),0);
+    const avgEaten=Math.round(allDates.reduce((s,k)=>s+calHistory[k].eaten,0)/allDates.length);
+    const estLoss=(totalDef/7700).toFixed(2);
+    const stats=document.createElement('div'); stats.className='hist-stats';
+    stats.innerHTML=`<div class="hist-stat"><div class="hist-stat-val ${totalDef>=0?'green':'amber'}">${totalDef>=0?'−':'+'}${Math.abs(Math.round(totalDef)).toLocaleString()} kcal</div><div class="hist-stat-lbl">Balance acumulado</div></div><div class="hist-stat"><div class="hist-stat-val ${parseFloat(estLoss)>=0?'green':'amber'}">${parseFloat(estLoss)>=0?'−':'+'}${Math.abs(estLoss)} kg</div><div class="hist-stat-lbl">Pérdida estimada</div></div><div class="hist-stat"><div class="hist-stat-val">${avgEaten.toLocaleString()}</div><div class="hist-stat-lbl">Media kcal/día</div></div><div class="hist-stat"><div class="hist-stat-val">${allDates.length}</div><div class="hist-stat-lbl">Días registrados</div></div>`;
+    c.appendChild(stats);
+    const leg=document.createElement('div'); leg.className='hist-legend';
+    leg.innerHTML='<div class="hist-legend-item"><div class="hist-legend-dot" style="background:#2dba85"></div>Comidas</div><div class="hist-legend-item"><div class="hist-legend-dot" style="background:rgba(255,255,255,0.15)"></div>Objetivo</div>';
+    c.appendChild(leg);
+    const chartH=Math.max(180,Math.min(allDates.length*28,320));
+    const calCard=document.createElement('div'); calCard.className='hist-card'; calCard.style.padding='14px 10px 10px';
+    calCard.innerHTML=`<div style="position:relative;width:100%;height:${chartH}px"><canvas id="cal-chart" role="img" aria-label="Historial calorías"></canvas></div>`;
+    c.appendChild(calCard);
+  }
+
+  // Weight
+  const wtTitle=document.createElement('div'); wtTitle.className='hist-section-title'; wtTitle.style.marginTop='4px';
+  wtTitle.textContent='Evolución del peso'; c.appendChild(wtTitle);
+  const wtCard=document.createElement('div'); wtCard.className='hist-card';
+  const todayStr = new Date().toISOString().slice(0,10);
+  wtCard.innerHTML=`<div class="weight-input-row"><input type="number" id="weight-input" placeholder="94.0" min="40" max="200" step="0.1" style="font-size:18px"><button class="btn-primary" style="padding:10px 16px;white-space:nowrap" onclick="addWeight()">Guardar</button></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:12px;color:var(--text3);flex-shrink:0">Fecha:</span><input type="date" id="weight-date" value="${todayStr}" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;color:var(--text);font-family:var(--font)"><span style="font-size:11px;color:var(--text3);flex-shrink:0">Cambia si es de ayer</span></div>`;
+  if(weightLog.length>=2) wtCard.innerHTML+=`<div style="position:relative;width:100%;height:160px"><canvas id="weight-chart" role="img" aria-label="Peso"></canvas></div>`;
+  if(weightLog.length>0){
+    let eh='<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:8px">';
+    [...weightLog].reverse().forEach((entry,i,arr)=>{
+      const prev=arr[i+1]; const diff=prev?+(entry.kg-prev.kg).toFixed(1):null;
+      const ds=diff!==null?`<span class="${diff<0?'wdiff-down':'wdiff-up'}">${diff>0?'+':''}${diff} kg</span>`:'';
+      eh+=`<div class="weight-entry"><span class="weight-entry-date">${entry.date}</span><div style="display:flex;align-items:center;gap:10px">${ds}<span class="weight-entry-val">${entry.kg} kg</span></div></div>`;
+    });
+    eh+='</div>'; wtCard.innerHTML+=eh;
+  } else { wtCard.innerHTML+='<div class="no-data">Aún no hay registros de peso.</div>'; }
+  c.appendChild(wtCard);
+
+  setTimeout(()=>{
+    if(!window.Chart) return;
+    if(allDates.length>0){
+      const ctx=document.getElementById('cal-chart');
+      if(ctx){
+        if(ctx._chart) ctx._chart.destroy();
+        const labels=allDates.map(d=>{const p=d.split('-');return p[2]+'/'+p[1];});
+        const eaten=allDates.map(d=>calHistory[d].eaten);
+        const targets=allDates.map(d=>calHistory[d].target);
+        ctx._chart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Comidas',data:eaten,backgroundColor:eaten.map((v,i)=>v>targets[i]?'rgba(240,160,48,0.85)':'rgba(45,186,133,0.85)'),borderRadius:3},{label:'Objetivo',data:targets,backgroundColor:'rgba(255,255,255,0.08)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y.toLocaleString()+' kcal'}}},scales:{x:{ticks:{color:'#5a5754',font:{size:10},autoSkip:true,maxTicksLimit:12},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#5a5754',font:{size:10},callback:v=>v.toLocaleString()},grid:{color:'rgba(255,255,255,0.06)'},min:Math.min(...targets,...eaten)-200}}}});
+      }
+    }
+    if(weightLog.length>=2){
+      const wctx=document.getElementById('weight-chart');
+      if(wctx){
+        if(wctx._chart) wctx._chart.destroy();
+        const wl=weightLog.map(e=>e.date.split(' ').slice(0,2).join(' '));
+        const wd=weightLog.map(e=>e.kg);
+        wctx._chart=new Chart(wctx,{type:'line',data:{labels:wl,datasets:[{label:'Peso',data:wd,borderColor:'#2dba85',backgroundColor:'rgba(45,186,133,0.08)',borderWidth:2,pointBackgroundColor:'#2dba85',pointRadius:4,tension:0.3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+' kg'}}},scales:{x:{ticks:{color:'#5a5754',font:{size:10},maxRotation:30},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#5a5754',font:{size:10},callback:v=>v.toFixed(1)+' kg'},grid:{color:'rgba(255,255,255,0.06)'},min:Math.min(...wd)-0.5,max:Math.max(...wd)+0.5}}}});
+      }
+    }
+  },150);
+}
+
+function addWeight(){
+  const val=parseFloat(document.getElementById('weight-input').value);
+  if(!val||val<30||val>300) return;
+  const dateInput = document.getElementById('weight-date');
+  const selectedDate = dateInput ? dateInput.value : new Date().toISOString().slice(0,10);
+  const d = new Date(selectedDate + 'T12:00:00');
+  const dateStr = d.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
+  // Remove existing entry for same date if any
+  weightLog = weightLog.filter(e => e.isoDate !== selectedDate);
+  weightLog.push({kg:val, date:dateStr, isoDate:selectedDate, ts:d.getTime()});
+  // Sort by date ascending
+  weightLog.sort((a,b) => a.ts - b.ts);
+  save('weightLog',weightLog);
+  document.getElementById('weight-input').value='';
+  renderHist();
+}
+
+function switchView(v){
+  ['plan','hist','shop','favs'].forEach(x=>{
+    document.getElementById('view-'+x).classList.toggle('active',x===v);
+    document.getElementById('tab-'+x).classList.toggle('active',x===v);
+  });
+  document.querySelector('.fab').style.display=v==='plan'?'flex':'none';
+  if(v==='hist') renderHist();
+}
+
+// --- Init ---
 initStorage(); (()=>{
   buildDayNav();
   renderPlan();

@@ -626,16 +626,18 @@ function customKey(d,m){ return d+'-'+m+'-custom'; }
 // key: customKey(d,m) → {name, kcal}
 
 async function initStorage() {
-  checked       = load('checkedMeals', {});
-  favorites     = load('favs', [{name:'Cocido/puchero murciano',moment:'comida'},{name:'Paella valenciana',moment:'comida'}]);
-  dailySteps    = load('dailySteps', {});
-  aiAdjustments = load('aiAdjustments', {});
-  weightLog     = load('weightLog', []);
-  calHistory    = load('calHistory', {});
-  streakLog     = load('streakLog', {});
-  customMeals   = load('customMeals', {});
-  aiMsgCache    = load('aiMsgCache', {});
-  dailyDrinks   = load('dailyDrinks', {});
+  [checked, favorites, dailySteps, aiAdjustments, weightLog, calHistory, streakLog, customMeals, aiMsgCache, dailyDrinks] = await Promise.all([
+    load('checkedMeals', {}),
+    load('favs', [{name:'Cocido/puchero murciano',moment:'comida'},{name:'Paella valenciana',moment:'comida'}]),
+    load('dailySteps', {}),
+    load('aiAdjustments', {}),
+    load('weightLog', []),
+    load('calHistory', {}),
+    load('streakLog', {}),
+    load('customMeals', {}),
+    load('aiMsgCache', {}),
+    load('dailyDrinks', {})
+  ]);
   // Show API key indicator
   const icon = document.getElementById('cfg-icon');
   if (icon && getApiKey()) icon.textContent = '✅';

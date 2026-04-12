@@ -425,22 +425,34 @@ const todayIdx = (new Date().getDay()+6)%7;
 let currentDay = todayIdx;
 const shopChecked = {};
 
-// --- Storage (localStorage) ---
-function save(key, val) {
+// --- Supabase config ---
+const SUPA_URL = 'https://pbpmvnevphjqgtyosxns.supabase.co';
+const SUPA_KEY = 'sb_publishable_s-j-oP09YidGpPVNE-ZPiA_QPmsiJCi';
+const DEVICE_ID = (()=>{ let id=localStorage.getItem('mc_device_id'); if(!id){id='dev_'+Math.random().toString(36).slice(2); localStorage.setItem('mc_device_id',id);} return id; })();
+
+async function save(key, val) {
+  const dot = document.getElementById('save-dot');
+  try { localStorage.setItem('mc_'+key, JSON.stringify(val)); } catch(e) {}
   try {
-    localStorage.setItem('mc_'+key, JSON.stringify(val));
-    const dot = document.getElementById('save-dot');
-    if (dot) { dot.style.background='#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
+    const res = await fetch(SUPA_URL+'/rest/v1/app_data', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Prefer':'resolution=merge-duplicates'},
+      body: JSON.stringify({device_id:DEVICE_ID, key:key, value:JSON.stringify(val)})
+    });
+    if(dot){ dot.style.background=res.ok?'#2dba85':'#e24b4a'; setTimeout(()=>{dot.style.background='transparent';},800); }
   } catch(e) {
-    const dot = document.getElementById('save-dot');
-    if (dot) { dot.style.background='#e24b4a'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
+    if(dot){ dot.style.background='#e24b4a'; setTimeout(()=>{dot.style.background='transparent';},800); }
   }
 }
+
 async function load(key, fallback) {
   try {
-    const r = localStorage.getItem('mc_'+key);
-    return r !== null ? JSON.parse(r) : fallback;
-  } catch(e) { return fallback; }
+    const res = await fetch(SUPA_URL+'/rest/v1/app_data?device_id=eq.'+DEVICE_ID+'&key=eq.'+key+'&select=value', {
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    });
+    if(res.ok){ const data=await res.json(); if(data&&data.length>0) return JSON.parse(data[0].value); }
+  } catch(e) {}
+  try { const r=localStorage.getItem('mc_'+key); return r!==null?JSON.parse(r):fallback; } catch(e){ return fallback; }
 }
 
 // --- API Key management ---

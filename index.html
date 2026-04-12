@@ -5,8 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mis Comidas">
 <meta name="theme-color" content="#0e0e0e">
+<!-- Apple touch icons (inline SVG → PNG via canvas no necesario, usamos emoji-style icon) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230e0e0e'/%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle'%3E🍽%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230e0e0e'/%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle'%3E🍽%3C/text%3E%3C/svg%3E">
 <title>Mis Comidas</title>
+<script>
+// Service Worker inline — activa PWA offline
+if('serviceWorker' in navigator){
+  const sw = `
+    const CACHE = 'mis-comidas-v1';
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])));
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => { self.clients.claim(); });
+    self.addEventListener('fetch', e => {
+      if(e.request.url.includes('api.anthropic.com') || e.request.url.includes('cdnjs')) return;
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./'))));
+    });
+  `;
+  const blob = new Blob([sw], {type:'application/javascript'});
+  const url = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url, {scope: './'}).catch(()=>{});
+}
+</script>
 <style>
 :root {
   --green:#2dba85;--green-dim:rgba(45,186,133,0.12);
@@ -221,6 +245,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="header-day" id="top-day">Lunes</div>
       </div>
       <div class="kcal-pill" id="top-kcal">~1.780 kcal</div>
+      <div id="save-dot" style="width:8px;height:8px;border-radius:50%;background:transparent;transition:background .3s;margin-top:8px;flex-shrink:0"></div>
     </div>
     <div class="steps-bar">
       <span class="steps-icon">👟</span>
@@ -333,6 +358,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<div class="modal-overlay" id="drinks-modal">
+  <div class="modal">
+    <div class="modal-title">Bebidas del día</div>
+    <div class="modal-sub">Añade las bebidas que has tomado hoy — se suman a tus calorías.</div>
+    <div id="drinks-list" style="margin-bottom:12px"></div>
+    <input type="text" id="drink-name" placeholder="Ej: Cerveza, vino, zumo, refresco..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 12px;font-size:14px;color:var(--text);font-family:var(--font);margin-bottom:8px">
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input type="number" id="drink-kcal" placeholder="kcal (vacío=IA estima)" min="0" max="2000" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 12px;font-size:14px;color:var(--text);font-family:var(--font)">
+      <button class="btn-primary" style="padding:11px 16px;white-space:nowrap" onclick="addDrink()">Añadir</button>
+    </div>
+    <button class="btn-secondary" style="width:100%" onclick="closeDrinksModal()">Cerrar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="log-modal">
   <div class="modal">
     <div class="modal-title">¿Qué has comido fuera del plan?</div>
@@ -350,6 +389,32 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="tab-item" id="tab-hist" onclick="switchView('hist')"><span class="tab-icon">📊</span><span class="tab-lbl">Historial</span></div>
   <div class="tab-item" id="tab-shop" onclick="switchView('shop')"><span class="tab-icon">🛒</span><span class="tab-lbl">Compra</span></div>
   <div class="tab-item" id="tab-favs" onclick="switchView('favs')"><span class="tab-icon">⭐</span><span class="tab-lbl">Mis platos</span></div>
+  <div class="tab-item" id="tab-cfg" onclick="openSettings()"><span class="tab-icon" id="cfg-icon">⚙️</span><span class="tab-lbl">Config</span></div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div class="modal-title">Configuración · IA</div>
+    <div class="modal-sub">Introduce tu API key de Claude para activar los mensajes de la IA. Consíguela gratis en <strong style="color:var(--green)">console.anthropic.com</strong></div>
+    <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">API Key de Anthropic</label>
+    <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 12px;font-size:14px;color:var(--text);font-family:var(--font);margin-bottom:8px">
+    <div id="api-key-status" style="font-size:12px;margin-bottom:14px;min-height:16px"></div>
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">
+      🔒 La key se guarda <strong>solo en este dispositivo</strong>. Nunca pasa por ningún servidor intermedio — va directamente de tu móvil a Anthropic.
+    </div>
+    <div style="background:var(--blue-dim);border:1px solid rgba(96,165,232,0.2);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.7">
+      📱 <strong style="color:var(--blue)">Añadir a pantalla de inicio (iPhone):</strong><br>
+      1. Abre este archivo en <strong>Safari</strong><br>
+      2. Toca el icono compartir <strong>□↑</strong> (barra inferior)<br>
+      3. Desplázate y toca <strong>"Añadir a pantalla de inicio"</strong><br>
+      4. Ponle nombre y toca <strong>Añadir</strong>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeSettings()">Cancelar</button>
+      <button class="btn-primary" onclick="saveApiKey()">Guardar</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -360,13 +425,62 @@ const todayIdx = (new Date().getDay()+6)%7;
 let currentDay = todayIdx;
 const shopChecked = {};
 
-// --- Storage (window.storage with in-memory fallback) ---
+// --- Storage (localStorage) ---
 function save(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+  try {
+    localStorage.setItem('mc_'+key, JSON.stringify(val));
+    const dot = document.getElementById('save-dot');
+    if (dot) { dot.style.background='#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
+  } catch(e) {
+    const dot = document.getElementById('save-dot');
+    if (dot) { dot.style.background='#e24b4a'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
+  }
 }
-function load(key, fallback) {
-  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback; }
-  catch(e) { return fallback; }
+async function load(key, fallback) {
+  try {
+    const r = localStorage.getItem('mc_'+key);
+    return r !== null ? JSON.parse(r) : fallback;
+  } catch(e) { return fallback; }
+}
+
+// --- API Key management ---
+function getApiKey() { return localStorage.getItem('mc_apikey') || ''; }
+function openSettings() {
+  const key = getApiKey();
+  const input = document.getElementById('api-key-input');
+  if (input) input.value = key;
+  const status = document.getElementById('api-key-status');
+  if (status) {
+    if (key) { status.textContent = '✓ Key guardada — la IA está activa'; status.style.color='var(--green)'; }
+    else { status.textContent = 'Sin key — la IA no funcionará'; status.style.color='var(--amber)'; }
+  }
+  document.getElementById('settings-modal').classList.add('show');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('show'); }
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const status = document.getElementById('api-key-status');
+  if (key && !key.startsWith('sk-ant-')) {
+    if (status) { status.textContent = '⚠ Formato de key incorrecto. Debe empezar por sk-ant-'; status.style.color='var(--amber)'; }
+    return;
+  }
+  if (key) { localStorage.setItem('mc_apikey', key); }
+  else { localStorage.removeItem('mc_apikey'); }
+  // Update icon
+  const icon = document.getElementById('cfg-icon');
+  if (icon) icon.textContent = key ? '✅' : '⚙️';
+  if (status) { status.textContent = key ? '✓ Guardada correctamente' : 'Key eliminada'; status.style.color='var(--green)'; }
+  setTimeout(closeSettings, 800);
+}
+
+// Headers for Anthropic API calls from browser
+function apiHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'x-api-key': getApiKey(),
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-ipc': 'true'
+  };
 }
 
 let checked = {};
@@ -378,6 +492,7 @@ let calHistory = {};
 let streakLog = {};
 let customMeals = {};
 let aiMsgCache = {};
+let dailyDrinks = {};
 let analyzeTimer = null;
 let summaryShown = false;
 
@@ -498,7 +613,7 @@ function customKey(d,m){ return d+'-'+m+'-custom'; }
 
 // key: customKey(d,m) → {name, kcal}
 
-function initStorage() {
+async function initStorage() {
   checked       = load('checkedMeals', {});
   favorites     = load('favs', [{name:'Cocido/puchero murciano',moment:'comida'},{name:'Paella valenciana',moment:'comida'}]);
   dailySteps    = load('dailySteps', {});
@@ -508,6 +623,10 @@ function initStorage() {
   streakLog     = load('streakLog', {});
   customMeals   = load('customMeals', {});
   aiMsgCache    = load('aiMsgCache', {});
+  dailyDrinks   = load('dailyDrinks', {});
+  // Show API key indicator
+  const icon = document.getElementById('cfg-icon');
+  if (icon && getApiKey()) icon.textContent = '✅';
 }
 
 let _customDay = 0, _customMeal = 0;
@@ -531,7 +650,7 @@ async function saveCustomMeal() {
     closeCustomModal();
     document.getElementById('ai-loading').classList.add('show');
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,messages:[{role:'user',content:'Estima las calorías de esta comida para una persona de 93kg. Solo responde con el número entero, sin texto: "'+name+'"'}]})});
+      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:apiHeaders(),body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,messages:[{role:'user',content:'Estima las calorías de esta comida para una persona de 93kg. Solo responde con el número entero, sin texto: "'+name+'"'}]})});
       const data = await res.json();
       kcal = parseInt(data.content.map(b=>b.text||'').join('').trim()) || 600;
     } catch(e) { kcal = 600; }
@@ -583,29 +702,75 @@ function countDayDone(dayIdx) {
 }
 
 function getMarkedKcal(dayIdx) {
-  return basePlan[dayIdx].meals.reduce((t, m, mi) => {
+  const mealKcal = basePlan[dayIdx].meals.reduce((t, m, mi) => {
     const adj  = aiAdjustments[dayIdx];
     const adjM = adj && adj.meals && adj.meals[mi];
     const base = adjM ? adjM.kcal : m.kcal;
     const ck   = customKey(dayIdx, mi);
     const mk   = mealKey(dayIdx, mi);
-
-    if (checked[ck]) {
-      const cm = customMeals[ck];
-      return t + (cm ? cm.kcal : base);
-    }
+    if (checked[ck]) { const cm = customMeals[ck]; return t + (cm ? cm.kcal : base); }
     const altIdx = m.alts.findIndex((_,ai) => checked[altKey(dayIdx,mi,ai)]);
-    if (altIdx >= 0) {
-      const kcalStr = m.alts[altIdx].detail.match(/~(\d+) kcal/);
-      return t + (kcalStr ? parseInt(kcalStr[1]) : base);
-    }
+    if (altIdx >= 0) { const ks = m.alts[altIdx].detail.match(/~(\d+) kcal/); return t + (ks ? parseInt(ks[1]) : base); }
     if (checked[mk]) return t + base;
-    return t; // not marked → don't count
+    return t;
   }, 0);
+  const drinkKcal = (dailyDrinks[dayIdx+'-drinks']||[]).reduce((s,dr)=>s+dr.kcal, 0);
+  return mealKcal + drinkKcal;
 }
 
 // Alias used by saveCalHistoryToday
 function getDayKcalEaten(dayIdx) { return getMarkedKcal(dayIdx); }
+
+let _drinksDay = 0;
+function openDrinksModal(dayIdx) {
+  _drinksDay = dayIdx;
+  renderDrinksList();
+  document.getElementById('drinks-modal').classList.add('show');
+}
+function closeDrinksModal() {
+  document.getElementById('drinks-modal').classList.remove('show');
+  renderPlan();
+}
+function renderDrinksList() {
+  const key = _drinksDay+'-drinks';
+  const drinks = dailyDrinks[key] || [];
+  const list = document.getElementById('drinks-list');
+  if (!list) return;
+  if (!drinks.length) { list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:4px 0 8px">Sin bebidas registradas hoy.</div>'; return; }
+  list.innerHTML = drinks.map((dr,i)=>
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px;color:var(--text)">${dr.name}</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:12px;color:var(--amber);font-weight:500">~${dr.kcal} kcal</span>
+        <button onclick="deleteDrink(${i})" style="background:transparent;border:none;color:var(--text3);font-size:16px;cursor:pointer">×</button>
+      </div>
+    </div>`
+  ).join('') + `<div style="font-size:12px;color:var(--amber);font-weight:500;padding:8px 0 4px">Total: ~${drinks.reduce((s,dr)=>s+dr.kcal,0)} kcal</div>`;
+}
+async function addDrink() {
+  const name = document.getElementById('drink-name').value.trim();
+  if (!name) return;
+  let kcal = parseInt(document.getElementById('drink-kcal').value) || 0;
+  if (!kcal) kcal = await estimateKcal(name);
+  if (!kcal) { const m = prompt('¿Cuántas kcal tiene "'+name+'"?'); kcal = parseInt(m)||0; }
+  if (!kcal) return;
+  const key = _drinksDay+'-drinks';
+  if (!dailyDrinks[key]) dailyDrinks[key] = [];
+  dailyDrinks[key].push({name, kcal});
+  save('dailyDrinks', dailyDrinks);
+  document.getElementById('drink-name').value = '';
+  document.getElementById('drink-kcal').value = '';
+  renderDrinksList();
+}
+function deleteDrink(i) {
+  const key = _drinksDay+'-drinks';
+  if (dailyDrinks[key]) { dailyDrinks[key].splice(i,1); save('dailyDrinks',dailyDrinks); renderDrinksList(); }
+}
+function deleteWeight(i){
+  weightLog.splice(i,1);
+  save('weightLog',weightLog);
+  renderHist();
+}
 
 function calcStreak() {
   let current=0, best=0;
@@ -746,10 +911,15 @@ ${cumul >= 3500 ? '- Le diga que se ha ganado una comida libre de recompensa' :
   '- Refuerce lo bien que lo está haciendo y qué le falta para el verde'}
 Solo el mensaje, sin comillas ni prefijos.`;
 
+  if (!getApiKey()) {
+    if (thinking) thinking.style.display = 'none';
+    if (msgEl) { msgEl.textContent = '⚙️ Configura tu API key para activar la IA'; msgEl.classList.remove('loading'); }
+    return;
+  }
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers: apiHeaders(),
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:120,messages:[{role:'user',content:prompt}]})
     });
     const data = await res.json();
@@ -774,9 +944,9 @@ function updateProgress() {
   renderBalance();
   renderStats();
   if (currentDay===todayIdx) {
-    markStreakToday();
-    saveCalHistoryToday();
-    renderStreak();
+    setTimeout(()=>markStreakToday(), 50);
+    setTimeout(()=>saveCalHistoryToday(), 100);
+    setTimeout(()=>renderStreak(), 150);
   }
   if (currentDay===todayIdx) triggerAutoAnalysis();
 }
@@ -1006,6 +1176,21 @@ function renderPlan() {
   tip.className='tip-card'; tip.textContent=d.tip;
   c.appendChild(tip);
 
+  // Drinks tracker
+  const drinksKey = currentDay + '-drinks';
+  const todayDrinks = dailyDrinks[drinksKey] || [];
+  const totalDrinkKcal = todayDrinks.reduce((s,dr)=>s+dr.kcal,0);
+  const drinksBtn = document.createElement('div');
+  drinksBtn.style.cssText = 'margin-top:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer';
+  drinksBtn.innerHTML = '<div style="display:flex;align-items:center;gap:8px">'
+    +'<span style="font-size:16px">🍺</span>'
+    +'<div><div style="font-size:13px;font-weight:500;color:var(--text)">Bebidas del día</div>'
+    +(totalDrinkKcal>0 ? '<div style="font-size:11px;color:var(--amber)">'+todayDrinks.length+' bebida'+(todayDrinks.length>1?'s':'')+' · ~'+totalDrinkKcal+' kcal acumuladas</div>' : '<div style="font-size:11px;color:var(--text3)">Toca para añadir bebidas</div>')
+    +'</div></div>'
+    +'<span style="color:var(--text3);font-size:20px">+</span>';
+  drinksBtn.addEventListener('click', ()=>openDrinksModal(currentDay));
+  c.appendChild(drinksBtn);
+
   updateProgress();
   renderStreak();
   renderBalance();
@@ -1069,7 +1254,7 @@ Escribe un resumen del día en 3 frases máximo: 1) cómo ha ido hoy, 2) un cons
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers: apiHeaders(),
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})
     });
     const data = await res.json();
@@ -1127,7 +1312,7 @@ Ha comido esto fuera del plan o en una celebración: "${text}".
 Ajusta cena hoy y los próximos 2 días para recuperar el balance. Si el superávit es grande sugiere también cuántos pasos extra debería dar. Solo JSON sin texto extra:
 {"explanation":"max 2 frases con consejo claro","stepsExtra":0,"today":{"meals":[null,null,{"name":"","desc":"","kcal":0}]},"tomorrow":{"explanation":"","meals":[{"name":"","desc":"","kcal":0},null,{"name":"","desc":"","kcal":0}]},"dayAfter":{"explanation":"","meals":[{"name":"","desc":"","kcal":0},null,{"name":"","desc":"","kcal":0}]}}`;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:apiHeaders(),body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data = await res.json();
     const raw = data.content.map(b=>b.text||'').join('');
     const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
@@ -1209,7 +1394,7 @@ async function addFavorite(){
 
 async function estimateKcal(name) {
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:apiHeaders(),
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:20,
         messages:[{role:'user',content:'Número de calorías de "'+name+'" ración normal. Solo el número entero sin nada más.'}]})});
     const data = await res.json();
@@ -1284,9 +1469,10 @@ function renderHist() {
   if(weightLog.length>0){
     let eh='<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:8px">';
     [...weightLog].reverse().forEach((entry,i,arr)=>{
+      const realIdx = weightLog.length - 1 - i;
       const prev=arr[i+1]; const diff=prev?+(entry.kg-prev.kg).toFixed(1):null;
       const ds=diff!==null?`<span class="${diff<0?'wdiff-down':'wdiff-up'}">${diff>0?'+':''}${diff} kg</span>`:'';
-      eh+=`<div class="weight-entry"><span class="weight-entry-date">${entry.date}</span><div style="display:flex;align-items:center;gap:10px">${ds}<span class="weight-entry-val">${entry.kg} kg</span></div></div>`;
+      eh+=`<div class="weight-entry"><span class="weight-entry-date">${entry.date}</span><div style="display:flex;align-items:center;gap:10px">${ds}<span class="weight-entry-val">${entry.kg} kg</span><button onclick="deleteWeight(${realIdx})" style="background:transparent;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0 2px;line-height:1">×</button></div></div>`;
     });
     eh+='</div>'; wtCard.innerHTML+=eh;
   } else { wtCard.innerHTML+='<div class="no-data">Aún no hay registros de peso.</div>'; }
@@ -1343,17 +1529,18 @@ function switchView(v){
 }
 
 // --- Init ---
-initStorage();
-buildDayNav();
-renderPlan();
-renderShop();
-renderFavs();
-setInterval(checkDailySummary, 60000);
-setTimeout(checkDailySummary, 3000);
-setTimeout(()=>{
-  const nav=document.getElementById('day-nav');
-  if(nav.children[currentDay]) nav.children[currentDay].scrollIntoView({inline:'center',block:'nearest'});
-},100);
+initStorage().then(()=>{
+  buildDayNav();
+  renderPlan();
+  renderShop();
+  renderFavs();
+  setInterval(checkDailySummary, 60000);
+  setTimeout(checkDailySummary, 3000);
+  setTimeout(()=>{
+    const nav=document.getElementById('day-nav');
+    if(nav.children[currentDay]) nav.children[currentDay].scrollIntoView({inline:'center',block:'nearest'});
+  },100);
+});
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>

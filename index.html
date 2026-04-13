@@ -5,32 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Mis Comidas">
 <meta name="theme-color" content="#0e0e0e">
-<!-- Apple touch icons (inline SVG → PNG via canvas no necesario, usamos emoji-style icon) -->
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230e0e0e'/%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle'%3E🍽%3C/text%3E%3C/svg%3E">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230e0e0e'/%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle'%3E🍽%3C/text%3E%3C/svg%3E">
 <title>Mis Comidas</title>
-<script>
-// Service Worker inline — activa PWA offline
-if('serviceWorker' in navigator){
-  const sw = `
-    const CACHE = 'mis-comidas-v1';
-    self.addEventListener('install', e => {
-      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])));
-      self.skipWaiting();
-    });
-    self.addEventListener('activate', e => { self.clients.claim(); });
-    self.addEventListener('fetch', e => {
-      if(e.request.url.includes('api.anthropic.com') || e.request.url.includes('cdnjs')) return;
-      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./'))));
-    });
-  `;
-  const blob = new Blob([sw], {type:'application/javascript'});
-  const url = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(url, {scope: './'}).catch(()=>{});
-}
-</script>
 <style>
 :root {
   --green:#2dba85;--green-dim:rgba(45,186,133,0.12);
@@ -389,32 +365,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="tab-item" id="tab-hist" onclick="switchView('hist')"><span class="tab-icon">📊</span><span class="tab-lbl">Historial</span></div>
   <div class="tab-item" id="tab-shop" onclick="switchView('shop')"><span class="tab-icon">🛒</span><span class="tab-lbl">Compra</span></div>
   <div class="tab-item" id="tab-favs" onclick="switchView('favs')"><span class="tab-icon">⭐</span><span class="tab-lbl">Mis platos</span></div>
-  <div class="tab-item" id="tab-cfg" onclick="openSettings()"><span class="tab-icon" id="cfg-icon">⚙️</span><span class="tab-lbl">Config</span></div>
-</div>
-
-<!-- Settings modal -->
-<div class="modal-overlay" id="settings-modal">
-  <div class="modal">
-    <div class="modal-title">Configuración · IA</div>
-    <div class="modal-sub">Introduce tu API key de Claude para activar los mensajes de la IA. Consíguela gratis en <strong style="color:var(--green)">console.anthropic.com</strong></div>
-    <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">API Key de Anthropic</label>
-    <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 12px;font-size:14px;color:var(--text);font-family:var(--font);margin-bottom:8px">
-    <div id="api-key-status" style="font-size:12px;margin-bottom:14px;min-height:16px"></div>
-    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">
-      🔒 La key se guarda <strong>solo en este dispositivo</strong>. Nunca pasa por ningún servidor intermedio — va directamente de tu móvil a Anthropic.
-    </div>
-    <div style="background:var(--blue-dim);border:1px solid rgba(96,165,232,0.2);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.7">
-      📱 <strong style="color:var(--blue)">Añadir a pantalla de inicio (iPhone):</strong><br>
-      1. Abre este archivo en <strong>Safari</strong><br>
-      2. Toca el icono compartir <strong>□↑</strong> (barra inferior)<br>
-      3. Desplázate y toca <strong>"Añadir a pantalla de inicio"</strong><br>
-      4. Ponle nombre y toca <strong>Añadir</strong>
-    </div>
-    <div class="modal-btns">
-      <button class="btn-secondary" onclick="closeSettings()">Cancelar</button>
-      <button class="btn-primary" onclick="saveApiKey()">Guardar</button>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -425,74 +375,24 @@ const todayIdx = (new Date().getDay()+6)%7;
 let currentDay = todayIdx;
 const shopChecked = {};
 
-// --- Supabase config ---
-const SUPA_URL = 'https://pbpmvnevphjqgtyosxns.supabase.co';
-const SUPA_KEY = 'sb_publishable_s-j-oP09YidGpPVNE-ZPiA_QPmsiJCi';
-const DEVICE_ID = (()=>{ let id=localStorage.getItem('mc_device_id'); if(!id){id='dev_'+Math.random().toString(36).slice(2); localStorage.setItem('mc_device_id',id);} return id; })();
-
+// --- Storage with queue to prevent race conditions ---
+const saveQueue = {};
 async function save(key, val) {
-  const dot = document.getElementById('save-dot');
-  try { localStorage.setItem('mc_'+key, JSON.stringify(val)); } catch(e) {}
+  saveQueue[key] = val; // Always keep latest value
   try {
-    const res = await fetch(SUPA_URL+'/rest/v1/app_data', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Prefer':'resolution=merge-duplicates'},
-      body: JSON.stringify({device_id:DEVICE_ID, key:key, value:JSON.stringify(val)})
-    });
-    if(dot){ dot.style.background=res.ok?'#2dba85':'#e24b4a'; setTimeout(()=>{dot.style.background='transparent';},800); }
+    await window.storage.set(key, JSON.stringify(saveQueue[key]));
+    const dot = document.getElementById('save-dot');
+    if (dot) { dot.style.background='#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
   } catch(e) {
-    if(dot){ dot.style.background='#e24b4a'; setTimeout(()=>{dot.style.background='transparent';},800); }
+    const dot = document.getElementById('save-dot');
+    if (dot) { dot.style.background='#e24b4a'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
   }
 }
-
 async function load(key, fallback) {
   try {
-    const res = await fetch(SUPA_URL+'/rest/v1/app_data?device_id=eq.'+DEVICE_ID+'&key=eq.'+key+'&select=value', {
-      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
-    });
-    if(res.ok){ const data=await res.json(); if(data&&data.length>0) return JSON.parse(data[0].value); }
-  } catch(e) {}
-  try { const r=localStorage.getItem('mc_'+key); return r!==null?JSON.parse(r):fallback; } catch(e){ return fallback; }
-}
-
-// --- API Key management ---
-function getApiKey() { return localStorage.getItem('mc_apikey') || ''; }
-function openSettings() {
-  const key = getApiKey();
-  const input = document.getElementById('api-key-input');
-  if (input) input.value = key;
-  const status = document.getElementById('api-key-status');
-  if (status) {
-    if (key) { status.textContent = '✓ Key guardada — la IA está activa'; status.style.color='var(--green)'; }
-    else { status.textContent = 'Sin key — la IA no funcionará'; status.style.color='var(--amber)'; }
-  }
-  document.getElementById('settings-modal').classList.add('show');
-}
-function closeSettings() { document.getElementById('settings-modal').classList.remove('show'); }
-function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  const status = document.getElementById('api-key-status');
-  if (key && !key.startsWith('sk-ant-')) {
-    if (status) { status.textContent = '⚠ Formato de key incorrecto. Debe empezar por sk-ant-'; status.style.color='var(--amber)'; }
-    return;
-  }
-  if (key) { localStorage.setItem('mc_apikey', key); }
-  else { localStorage.removeItem('mc_apikey'); }
-  // Update icon
-  const icon = document.getElementById('cfg-icon');
-  if (icon) icon.textContent = key ? '✅' : '⚙️';
-  if (status) { status.textContent = key ? '✓ Guardada correctamente' : 'Key eliminada'; status.style.color='var(--green)'; }
-  setTimeout(closeSettings, 800);
-}
-
-// Headers for Anthropic API calls from browser
-function apiHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'x-api-key': getApiKey(),
-    'anthropic-version': '2023-06-01',
-    'anthropic-dangerous-direct-browser-ipc': 'true'
-  };
+    const r = await window.storage.get(key);
+    return r ? JSON.parse(r.value) : fallback;
+  } catch(e) { return fallback; }
 }
 
 let checked = {};
@@ -626,21 +526,16 @@ function customKey(d,m){ return d+'-'+m+'-custom'; }
 // key: customKey(d,m) → {name, kcal}
 
 async function initStorage() {
-  [checked, favorites, dailySteps, aiAdjustments, weightLog, calHistory, streakLog, customMeals, aiMsgCache, dailyDrinks] = await Promise.all([
-    load('checkedMeals', {}),
-    load('favs', [{name:'Cocido/puchero murciano',moment:'comida'},{name:'Paella valenciana',moment:'comida'}]),
-    load('dailySteps', {}),
-    load('aiAdjustments', {}),
-    load('weightLog', []),
-    load('calHistory', {}),
-    load('streakLog', {}),
-    load('customMeals', {}),
-    load('aiMsgCache', {}),
-    load('dailyDrinks', {})
-  ]);
-  // Show API key indicator
-  const icon = document.getElementById('cfg-icon');
-  if (icon && getApiKey()) icon.textContent = '✅';
+  checked       = await load('checkedMeals', {});
+  favorites     = await load('favs', [{name:'Cocido/puchero murciano',moment:'comida'},{name:'Paella valenciana',moment:'comida'}]);
+  dailySteps    = await load('dailySteps', {});
+  aiAdjustments = await load('aiAdjustments', {});
+  weightLog     = await load('weightLog', []);
+  calHistory    = await load('calHistory', {});
+  streakLog     = await load('streakLog', {});
+  customMeals   = await load('customMeals', {});
+  aiMsgCache    = await load('aiMsgCache', {});
+  dailyDrinks   = await load('dailyDrinks', {});
 }
 
 let _customDay = 0, _customMeal = 0;
@@ -664,11 +559,9 @@ async function saveCustomMeal() {
     closeCustomModal();
     document.getElementById('ai-loading').classList.add('show');
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:apiHeaders(),body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:20,messages:[{role:'user',content:'Responde SOLO con un número entero. Sin texto, sin unidades, sin explicación. Calorías de una ración normal de: '+name}]})});
+      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,messages:[{role:'user',content:'Estima las calorías de esta comida para una persona de 93kg. Solo responde con el número entero, sin texto: "'+name+'"'}]})});
       const data = await res.json();
-      const txt = data.content.map(b=>b.text||'').join('').trim();
-      const match = txt.match(/\d+/);
-      kcal = match ? (parseInt(match[0]) || 600) : 600;
+      kcal = parseInt(data.content.map(b=>b.text||'').join('').trim()) || 600;
     } catch(e) { kcal = 600; }
     document.getElementById('ai-loading').classList.remove('show');
   } else {
@@ -927,15 +820,10 @@ ${cumul >= 3500 ? '- Le diga que se ha ganado una comida libre de recompensa' :
   '- Refuerce lo bien que lo está haciendo y qué le falta para el verde'}
 Solo el mensaje, sin comillas ni prefijos.`;
 
-  if (!getApiKey()) {
-    if (thinking) thinking.style.display = 'none';
-    if (msgEl) { msgEl.textContent = '⚙️ Configura tu API key para activar la IA'; msgEl.classList.remove('loading'); }
-    return;
-  }
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers: apiHeaders(),
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:120,messages:[{role:'user',content:prompt}]})
     });
     const data = await res.json();
@@ -1270,7 +1158,7 @@ Escribe un resumen del día en 3 frases máximo: 1) cómo ha ido hoy, 2) un cons
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers: apiHeaders(),
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})
     });
     const data = await res.json();
@@ -1328,7 +1216,7 @@ Ha comido esto fuera del plan o en una celebración: "${text}".
 Ajusta cena hoy y los próximos 2 días para recuperar el balance. Si el superávit es grande sugiere también cuántos pasos extra debería dar. Solo JSON sin texto extra:
 {"explanation":"max 2 frases con consejo claro","stepsExtra":0,"today":{"meals":[null,null,{"name":"","desc":"","kcal":0}]},"tomorrow":{"explanation":"","meals":[{"name":"","desc":"","kcal":0},null,{"name":"","desc":"","kcal":0}]},"dayAfter":{"explanation":"","meals":[{"name":"","desc":"","kcal":0},null,{"name":"","desc":"","kcal":0}]}}`;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:apiHeaders(),body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data = await res.json();
     const raw = data.content.map(b=>b.text||'').join('');
     const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
@@ -1409,17 +1297,14 @@ async function addFavorite(){
 }
 
 async function estimateKcal(name) {
-  if (!getApiKey()) return 0;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:apiHeaders(),
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:20,
-        messages:[{role:'user',content:'Responde SOLO con un número entero. Sin texto, sin unidades, sin explicación. Calorías de una ración normal de: '+name}]})});
+        messages:[{role:'user',content:'Número de calorías de "'+name+'" ración normal. Solo el número entero sin nada más.'}]})});
     const data = await res.json();
-    if (data.error) return 0;
+    if (data.error) throw new Error(data.error.message);
     const txt = data.content.map(b=>b.text||'').join('').trim();
-    // Extract first number found in response
-    const match = txt.match(/\d+/);
-    const num = match ? parseInt(match[0]) : 0;
+    const num = parseInt(txt.replace(/[^\d]/g,''));
     return (num > 0 && num < 5000) ? num : 0;
   } catch(e) { return 0; }
 }

@@ -288,13 +288,45 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <div id="view-favs" class="view">
   <div class="page-title">Mis platos</div>
   <div class="content">
-    <div class="profile-card">
-      <div class="profile-row"><span class="profile-lbl">Edad</span><span class="profile-val">58 años</span></div>
-      <div class="profile-row"><span class="profile-lbl">Peso</span><span class="profile-val">93 kg</span></div>
-      <div class="profile-row"><span class="profile-lbl">Altura</span><span class="profile-val">175 cm</span></div>
-      <div class="profile-row"><span class="profile-lbl">Objetivo (8.000 pasos)</span><span class="profile-val green">~1.780 kcal/día</span></div>
-      <div class="profile-row"><span class="profile-lbl">Objetivo (5.000 pasos)</span><span class="profile-val">~1.375 kcal/día</span></div>
-      <div class="profile-row"><span class="profile-lbl">Con 0 pasos (base)</span><span class="profile-val">700 kcal/día</span></div>
+    <div class="fav-section-title">Mi perfil</div>
+    <div class="profile-card" id="profile-card">
+      <div class="profile-row">
+        <span class="profile-lbl">Edad</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="prof-age" min="18" max="100" style="width:60px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px 8px;font-size:13px;color:var(--text);text-align:center;font-family:var(--font)">
+          <span style="font-size:13px;color:var(--text2)">años</span>
+        </div>
+      </div>
+      <div class="profile-row">
+        <span class="profile-lbl">Peso actual</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="prof-weight" min="40" max="200" step="0.5" style="width:70px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px 8px;font-size:13px;color:var(--text);text-align:center;font-family:var(--font)">
+          <span style="font-size:13px;color:var(--text2)">kg</span>
+        </div>
+      </div>
+      <div class="profile-row">
+        <span class="profile-lbl">Altura</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="prof-height" min="140" max="220" style="width:70px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px 8px;font-size:13px;color:var(--text);text-align:center;font-family:var(--font)">
+          <span style="font-size:13px;color:var(--text2)">cm</span>
+        </div>
+      </div>
+      <div class="profile-row">
+        <span class="profile-lbl">Objetivo pasos/día</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="prof-steps" min="1000" max="30000" step="500" style="width:80px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px 8px;font-size:13px;color:var(--text);text-align:center;font-family:var(--font)">
+          <span style="font-size:13px;color:var(--text2)">pasos</span>
+        </div>
+      </div>
+      <div class="profile-row" id="prof-bmr-row">
+        <span class="profile-lbl">BMR calculado</span>
+        <span class="profile-val" id="prof-bmr-val">—</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-lbl">Objetivo con tu meta de pasos</span>
+        <span class="profile-val green" id="prof-target-val">—</span>
+      </div>
+      <button onclick="saveProfile()" style="width:100%;margin-top:12px;padding:11px;background:var(--green);border:none;border-radius:var(--radius-sm);color:#fff;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer">Guardar perfil</button>
     </div>
     <div class="fav-section-title">Añadir plato favorito</div>
     <div class="fav-input-card">
@@ -313,7 +345,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </select>
       <button class="fav-add-btn" id="fav-add-btn" onclick="addFavorite()">Añadir a mis platos</button>
     </div>
-    <div class="fav-section-title">Mis platos guardados</div>
+    <div class="fav-section-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Mis platos guardados</span>
+      <div style="display:flex;gap:6px">
+        <button onclick="exportFavsExcel()" style="background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)">📥 Exportar</button>
+        <label style="background:transparent;border:1px solid var(--green);border-radius:var(--radius-sm);padding:4px 10px;font-size:11px;color:var(--green);cursor:pointer;font-family:var(--font)">📤 Importar<input type="file" accept=".xlsx,.csv" onchange="importFavsExcel(this)" style="display:none"></label>
+      </div>
+    </div>
     <div class="fav-list" id="fav-list"></div>
   </div>
 </div>
@@ -331,6 +369,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button class="btn-secondary" onclick="closeCustomModal()">Cancelar</button>
       <button class="btn-primary" onclick="saveCustomMeal()">Guardar y marcar ↗</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="swap-modal">
+  <div class="modal">
+    <div class="modal-title" id="swap-modal-title">Cambiar por favorito</div>
+    <div class="modal-sub">Elige un plato de tus favoritos para esta semana.</div>
+    <div id="swap-list" style="max-height:300px;overflow-y:auto"></div>
+    <button class="btn-secondary" style="width:100%;margin-top:12px" onclick="closeSwapModal()">Cancelar</button>
   </div>
 </div>
 
@@ -368,32 +415,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <script>
-const USER = {age:58,weight:93,height:175,bmr:1820};
+const USER = {age:58, weight:93, height:175, bmr:1820};
+let STEP_GOAL = 8000;
 const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const fullDays = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const todayIdx = (new Date().getDay()+6)%7;
 let currentDay = todayIdx;
 const shopChecked = {};
-
-// --- Storage with queue to prevent race conditions ---
-const saveQueue = {};
-async function save(key, val) {
-  saveQueue[key] = val; // Always keep latest value
-  try {
-    await window.storage.set(key, JSON.stringify(saveQueue[key]));
-    const dot = document.getElementById('save-dot');
-    if (dot) { dot.style.background='#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
-  } catch(e) {
-    const dot = document.getElementById('save-dot');
-    if (dot) { dot.style.background='#e24b4a'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
-  }
-}
-async function load(key, fallback) {
-  try {
-    const r = await window.storage.get(key);
-    return r ? JSON.parse(r.value) : fallback;
-  } catch(e) { return fallback; }
-}
 
 let checked = {};
 let favorites = [];
@@ -407,6 +435,36 @@ let aiMsgCache = {};
 let dailyDrinks = {};
 let analyzeTimer = null;
 let summaryShown = false;
+
+// --- Storage ---
+const isClaudeAI = typeof window.storage !== 'undefined';
+const saveQueue = {};
+async function save(key, val) {
+  saveQueue[key] = val;
+  const dot = document.getElementById('save-dot');
+  try {
+    if (isClaudeAI) {
+      await window.storage.set(key, JSON.stringify(saveQueue[key]));
+    } else {
+      localStorage.setItem(key, JSON.stringify(saveQueue[key]));
+    }
+    if (dot) { dot.style.background='#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
+  } catch(e) {
+    try { localStorage.setItem(key, JSON.stringify(saveQueue[key])); } catch(e2) {}
+    // Still show green — data saved to localStorage fallback
+    if (dot) { dot.style.background='#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
+  }
+}
+async function load(key, fallback) {
+  try {
+    if (isClaudeAI) {
+      const r = await window.storage.get(key);
+      if (r) return JSON.parse(r.value);
+    }
+  } catch(e) {}
+  try { const r = localStorage.getItem(key); if (r) return JSON.parse(r); } catch(e) {}
+  return fallback;
+}
 
 // --- Calorie calc ---
 function calcKcal(steps) {
@@ -487,6 +545,77 @@ const basePlan = [
 ];
 
 
+const basePlan2 = [
+  {tip:'Lunes de segunda semana — el bacalao murciano es ligero y sabroso.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de queso fresco con anchoas',desc:'Pan integral, queso fresco, anchoas, tomate, café',kcal:270,
+     alts:[{name:'Bocadillo de sardinas escurridas',detail:'Pan integral, sardinas, tomate · ~290 kcal'},{name:'Fruta de temporada',detail:'Melocotón, albaricoque o naranja · ~80 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Bacalao con tomate y pimientos',desc:'Bacalao guisado murciano · Ración normal · 1 caña + 1 vino ok',kcal:450,
+     alts:[{name:'Michirones',detail:'Habas secas especiadas murcianas · ~420 kcal'},{name:'Ensalada murciana + plancha',detail:'Tomate, atún, huevo, aceitunas + proteína · ~520 kcal'}]},
+    {type:'Cena',badge:'home',name:'Huevos revueltos con jamón',desc:'2 huevos, 40g jamón serrano, champiñones, tostada integral',kcal:350,
+     alts:[{name:'Ensalada murciana',detail:'Tomate, atún, huevo, aceitunas · ~360 kcal'},{name:'Sardinas al natural + ensalada',detail:'1 lata escurrida, tomate, lechuga · ~280 kcal'}]}
+  ]},
+  {tip:'Martes — el conejo al ajillo murciano es proteína pura y sabor tradicional.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de jamón york con queso fresco',desc:'Pan integral, jamón york, queso fresco, tomate, café',kcal:300,
+     alts:[{name:'Bocadillo de pechuga a la plancha',detail:'Pan integral, pechuga, tomate · ~310 kcal'},{name:'Bocadillo de anchoas con tomate',detail:'Pan integral, anchoas, tomate · ~260 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Conejo al ajillo',desc:'Plato murciano clásico · Ración normal · 1 caña + 1 vino ok',kcal:520,
+     alts:[{name:'Lomo en adobo murciano',detail:'Lomo adobado, guarnición ligera · ~550 kcal'},{name:'Alcachofas con jamón + segundo',detail:'Alcachofas rehogadas, carne magra · ~560 kcal'}]},
+    {type:'Cena',badge:'home',name:'Gazpacho murciano + queso fresco',desc:'Gazpacho casero murciano, 60g queso fresco, pan tostado',kcal:260,
+     alts:[{name:'Tortilla de patata + ensalada',detail:'Tortilla pequeña, lechuga, tomate · ~390 kcal'},{name:'Jamón cocido con queso fresco',detail:'80g jamón cocido, queso, tomate · ~300 kcal'}]}
+  ]},
+  {tip:'Miércoles — el potaje de habichuelas es el comfort food murciano por excelencia.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de atún con tomate natural',desc:'Pan integral, atún al natural, tomate, café con leche',kcal:280,
+     alts:[{name:'Bocadillo de caballa con tomate',detail:'Pan integral, caballa, tomate · ~275 kcal'},{name:'Bocadillo de longaniza murciana',detail:'Pan integral, longaniza, tomate · ~350 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Potaje de habichuelas',desc:'Plato murciano de legumbres · Ración normal · 1 caña + 1 vino ok',kcal:460,
+     alts:[{name:'Olla gitana (garbanzos con verduras)',detail:'Plato murciano, ración normal · ~520 kcal'},{name:'Arroz caldero',detail:'Arroz con pescado murciano · ~580 kcal'}]},
+    {type:'Cena',badge:'home',name:'Zarangollo con pan',desc:'Calabacín y cebolla rehogados con huevo, pan integral tostado',kcal:320,
+     alts:[{name:'Huevos revueltos con jamón',detail:'2 huevos, jamón, champiñones · ~350 kcal'},{name:'Ensalada murciana',detail:'Tomate, atún, huevo, aceitunas · ~360 kcal'}]}
+  ]},
+  {tip:'Jueves — el arroz con conejo y caracoles es el arroz más murciano que existe.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de pechuga de pollo con queso',desc:'Pan integral, pechuga plancha, queso fresco, café',kcal:320,
+     alts:[{name:'Bocadillo de sardinas escurridas',detail:'Pan integral, sardinas, tomate · ~290 kcal'},{name:'Bocadillo de queso fresco con anchoas',detail:'Pan integral, queso, anchoas · ~270 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Arroz con conejo y caracoles',desc:'Arroz seco murciano · Ración normal · 1 caña + 1 vino ok',kcal:620,
+     alts:[{name:'Dorada o lubina al horno',detail:'Pescado al horno, patata asada · ~480 kcal'},{name:'Menú del día: primero + segundo plancha',detail:'Ensalada + carne o pescado plancha · ~550 kcal'}]},
+    {type:'Cena',badge:'home',name:'Sardinas o caballa al natural + ensalada',desc:'1 lata escurrida, ensalada de tomate y lechuga, AOVE',kcal:280,
+     alts:[{name:'Tortilla de patata + ensalada',detail:'Tortilla pequeña, ensalada verde · ~390 kcal'},{name:'Gazpacho murciano + pan',detail:'Gazpacho casero, pan tostado · ~220 kcal'}]}
+  ]},
+  {tip:'Viernes — el lomo en adobo murciano es el filete del fin de semana.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de caballa al natural con tomate',desc:'Pan integral, caballa bien escurrida, tomate fresco, café',kcal:275,
+     alts:[{name:'Bocadillo de anchoas con tomate',detail:'Pan integral, anchoas, tomate · ~260 kcal'},{name:'Fruta de temporada',detail:'Melocotón, albaricoque o naranja · ~80 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Lomo en adobo murciano',desc:'Lomo adobado murciano · Guarnición ligera · 1 caña + 1 vino ok',kcal:550,
+     alts:[{name:'Conejo al ajillo',detail:'Conejo guisado, ración normal · ~520 kcal'},{name:'Dorada o lubina al horno',detail:'Pescado al horno, patata asada · ~480 kcal'}]},
+    {type:'Cena',badge:'home',name:'Tortilla española + ensalada murciana',desc:'Tortilla pequeña de patata, tomate, aceitunas, AOVE',kcal:390,
+     alts:[{name:'Ensalada murciana',detail:'Tomate, atún, huevo, aceitunas · ~360 kcal'},{name:'Huevos revueltos con jamón',detail:'2 huevos, jamón, champiñones · ~350 kcal'}]}
+  ]},
+  {tip:'Sábado — las migas murcianas son el plato más contundente, perfecto para el fin de semana.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de longaniza murciana',desc:'Pan integral, longaniza murciana, tomate natural, café',kcal:350,
+     alts:[{name:'Bocadillo de pechuga con queso',detail:'Pan integral, pechuga, queso fresco · ~320 kcal'},{name:'Bocadillo de jamón york',detail:'Pan integral, jamón york, queso · ~300 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Arroz caldero (arroz con pescado)',desc:'Plato estrella murciano · Ración normal · 1 caña + 1 vino ok',kcal:580,
+     alts:[{name:'Cordero al horno con patatas',detail:'Plato fin de semana, ración normal · ~680 kcal'},{name:'Bacalao con tomate y pimientos',detail:'Bacalao guisado murciano · ~450 kcal'}]},
+    {type:'Cena',badge:'home',name:'Jamón cocido con queso fresco',desc:'80g jamón cocido, queso fresco, tomate, aceitunas, AOVE',kcal:300,
+     alts:[{name:'Zarangollo con pan',detail:'Calabacín rehogado con huevo · ~320 kcal'},{name:'Gazpacho murciano + queso fresco',detail:'Gazpacho casero, queso fresco · ~260 kcal'}]}
+  ]},
+  {tip:'Domingo — el cocido murciano cierra la semana como se merece.',meals:[
+    {type:'Almuerzo',badge:'home',name:'Bocadillo de atún con tomate natural',desc:'Pan integral, atún al natural, tomate rallado, café con leche',kcal:280,
+     alts:[{name:'Bocadillo de pechuga a la plancha',detail:'Pan integral, pechuga, tomate · ~310 kcal'},{name:'Fruta de temporada',detail:'Melocotón, albaricoque o naranja · ~80 kcal'}]},
+    {type:'Comida',badge:'rest',name:'Cocido/puchero murciano',desc:'Plato de domingo · Pide sin exceso de tocino · 1 caña + 1 vino ok',kcal:680,
+     alts:[{name:'Guiso de pelotas murcianas',detail:'Plato tradicional, ración normal · ~680 kcal'},{name:'Arroz con conejo y caracoles',detail:'Arroz seco murciano, ración normal · ~620 kcal'}]},
+    {type:'Cena',badge:'home',name:'Ensalada murciana',desc:'Tomate natural, atún, huevo duro, aceitunas, AOVE y vinagre',kcal:360,
+     alts:[{name:'Tortilla española + ensalada',detail:'Tortilla pequeña, lechuga, tomate · ~390 kcal'},{name:'Sardinas al natural + ensalada',detail:'1 lata, tomate, lechuga, AOVE · ~280 kcal'}]}
+  ]}
+];
+
+// Get current week number to alternate menus
+function getCurrentWeekPlan() {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const weekNum = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+  return weekNum % 2 === 0 ? basePlan2 : basePlan;
+}
+
+// Per-day plan overrides (when user swaps a meal for a favorite)
+// key: "weekKey-dayIdx-mealIdx" → {name, desc, kcal, badge}
+let mealOverrides = {};
+
 const shopData = [
   {section:'Carnes y pescados',icon:'🥩',items:[
     {name:'Pechuga de pollo',qty:'300g'},{name:'Conejo troceado',qty:'500g (para guisos)'},
@@ -536,6 +665,15 @@ async function initStorage() {
   customMeals   = await load('customMeals', {});
   aiMsgCache    = await load('aiMsgCache', {});
   dailyDrinks   = await load('dailyDrinks', {});
+  mealOverrides = await load('mealOverrides', {});
+  const savedProfile = await load('userProfile', null);
+  if (savedProfile) {
+    USER.age = savedProfile.age || USER.age;
+    USER.weight = savedProfile.weight || USER.weight;
+    USER.height = savedProfile.height || USER.height;
+    USER.bmr = calcBMR(USER.age, USER.weight, USER.height);
+    STEP_GOAL = savedProfile.stepGoal || STEP_GOAL;
+  }
 }
 
 let _customDay = 0, _customMeal = 0;
@@ -559,7 +697,7 @@ async function saveCustomMeal() {
     closeCustomModal();
     document.getElementById('ai-loading').classList.add('show');
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,messages:[{role:'user',content:'Estima las calorías de esta comida para una persona de 93kg. Solo responde con el número entero, sin texto: "'+name+'"'}]})});
+      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,messages:[{role:'user',content:'Estima las calorías de esta comida para una persona de '+USER.weight+'kg. Solo responde con el número entero, sin texto: "'+name+'"'}]})});
       const data = await res.json();
       kcal = parseInt(data.content.map(b=>b.text||'').join('').trim()) || 600;
     } catch(e) { kcal = 600; }
@@ -574,7 +712,7 @@ async function saveCustomMeal() {
 
   // Auto-mark it and deselect others
   const mk = mealKey(_customDay, _customMeal);
-  const m = basePlan[_customDay].meals[_customMeal];
+  const m = getCurrentWeekPlan()[_customDay].meals[_customMeal];
   delete checked[mk];
   m.alts.forEach((_,ai) => delete checked[altKey(_customDay,_customMeal,ai)]);
   checked[ck] = true;
@@ -602,7 +740,8 @@ function markStreakToday() {
 }
 
 function countDayDone(dayIdx) {
-  return basePlan[dayIdx].meals.reduce((n, m, mi) => {
+  const weekPlan = getCurrentWeekPlan();
+  return weekPlan[dayIdx].meals.reduce((n, m, mi) => {
     const hasMeal   = checked[mealKey(dayIdx,mi)];
     const hasAlt    = m.alts.some((_,ai) => checked[altKey(dayIdx,mi,ai)]);
     const hasCustom = checked[customKey(dayIdx,mi)];
@@ -611,7 +750,8 @@ function countDayDone(dayIdx) {
 }
 
 function getMarkedKcal(dayIdx) {
-  const mealKcal = basePlan[dayIdx].meals.reduce((t, m, mi) => {
+  const weekPlan = getCurrentWeekPlan();
+  const mealKcal = weekPlan[dayIdx].meals.reduce((t, m, mi) => {
     const adj  = aiAdjustments[dayIdx];
     const adjM = adj && adj.meals && adj.meals[mi];
     const base = adjM ? adjM.kcal : m.kcal;
@@ -631,6 +771,38 @@ function getMarkedKcal(dayIdx) {
 function getDayKcalEaten(dayIdx) { return getMarkedKcal(dayIdx); }
 
 let _drinksDay = 0;
+let _swapDay=0, _swapMeal=0, _swapWeek=0, _swapBadge='';
+function openSwapModal(dayIdx, mealIdx, weekKey, mealType, badge) {
+  _swapDay=dayIdx; _swapMeal=mealIdx; _swapWeek=weekKey; _swapBadge=badge;
+  document.getElementById('swap-modal-title').textContent='Cambiar '+mealType+' por favorito';
+  const list = document.getElementById('swap-list');
+  const relevant = favorites.filter(f => {
+    if (badge==='rest') return f.moment==='comida';
+    if (mealType==='Almuerzo') return f.moment==='almuerzo';
+    if (mealType==='Cena') return f.moment==='cena';
+    return true;
+  });
+  if (!relevant.length) { list.innerHTML='<div style="font-size:13px;color:var(--text3);padding:12px 0">No tienes favoritos para este momento. Añade platos en ⭐ Mis platos.</div>'; }
+  else {
+    list.innerHTML = relevant.map((f,i)=>
+      `<div onclick="applySwap(${favorites.indexOf(f)})" style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer">
+        <div><div style="font-size:14px;font-weight:500;color:var(--text)">${f.name}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${f.kcal>0?'~'+f.kcal+' kcal':''}</div></div>
+        <span style="color:var(--green);font-size:18px">→</span>
+      </div>`
+    ).join('');
+  }
+  document.getElementById('swap-modal').classList.add('show');
+}
+function closeSwapModal(){ document.getElementById('swap-modal').classList.remove('show'); }
+function applySwap(favIdx) {
+  const f = favorites[favIdx];
+  const key = _swapWeek+'-'+_swapDay+'-'+_swapMeal;
+  mealOverrides[key] = {name:f.name, desc:'Plato favorito · '+f.kcal+' kcal', kcal:f.kcal||500};
+  save('mealOverrides', mealOverrides);
+  closeSwapModal();
+  renderPlan();
+}
+
 function openDrinksModal(dayIdx) {
   _drinksDay = dayIdx;
   renderDrinksList();
@@ -695,8 +867,7 @@ function calcStreak() {
 }
 
 const KCAL_PER_STEP = 0.057;
-const STEP_GOAL = 8000;
-const REWARD_THRESHOLD = 3500; // kcal deficit to earn a free meal (~0.5kg)
+const REWARD_THRESHOLD = 3500;
 
 function getCumulativeBalance() {
   return Object.keys(calHistory).reduce((sum, key) => {
@@ -773,8 +944,9 @@ function renderBalance() {
 }
 
 function triggerAutoAnalysis() {
+  if (!isClaudeAI) return;
   clearTimeout(analyzeTimer);
-  analyzeTimer = setTimeout(autoAnalyze, 1200); // debounce 1.2s
+  analyzeTimer = setTimeout(autoAnalyze, 1200);
 }
 
 async function autoAnalyze() {
@@ -912,7 +1084,8 @@ function updateSteps() {
 function renderPlan() {
   const steps = getStepsForDay(currentDay);
   const kcalTarget = calcKcal(steps);
-  const d = basePlan[currentDay];
+  const weekPlan = getCurrentWeekPlan();
+  const d = weekPlan[currentDay];
   const adj = aiAdjustments[currentDay];
 
   const now = new Date();
@@ -952,9 +1125,13 @@ function renderPlan() {
   note.innerHTML='🍺 <span>1 caña antes de comer + 1 copa de vino: <strong>~200 kcal</strong> — ya incluidas en la Comida del plan.</span>';
   c.appendChild(note);
 
+  const weekKey = (() => { const n=new Date(); const s=new Date(n.getFullYear(),0,1); return Math.ceil(((n-s)/86400000+s.getDay()+1)/7); })();
+
   d.meals.forEach((m, mi) => {
+    const overrideKey = weekKey+'-'+currentDay+'-'+mi;
+    const override = mealOverrides[overrideKey];
     const adjM  = adj && adj.meals && adj.meals[mi];
-    const meal  = adjM ? {...m, ...adjM, alts:m.alts} : m;
+    const meal  = override ? {...m, name:override.name, desc:override.desc, kcal:override.kcal} : (adjM ? {...m, ...adjM, alts:m.alts} : m);
     const mk    = mealKey(currentDay, mi);
     const ck    = customKey(currentDay, mi);
     const mainDone   = !!checked[mk];
@@ -1071,6 +1248,25 @@ function renderPlan() {
     addBtn.addEventListener('click', e => { e.stopPropagation(); openCustomModal(currentDay, mi, meal.type); });
     expWrap.appendChild(addBtn);
 
+    // Swap with favorite button
+    if (favorites.filter(f=>f.moment===m.type.toLowerCase()||f.moment==='comida'&&m.badge==='rest'||f.moment==='almuerzo'&&m.badge==='home'&&m.type==='Almuerzo'||f.moment==='cena'&&m.badge==='home'&&m.type==='Cena').length > 0) {
+      const swapBtn = document.createElement('button');
+      swapBtn.className = 'add-custom-btn';
+      swapBtn.style.cssText += ';color:var(--blue);border-color:rgba(96,165,232,0.3);margin-top:5px';
+      swapBtn.textContent = '⇄ Cambiar por favorito';
+      swapBtn.addEventListener('click', e => { e.stopPropagation(); openSwapModal(currentDay, mi, weekKey, m.type, m.badge); });
+      expWrap.appendChild(swapBtn);
+    }
+    const mealOverride = mealOverrides[weekKey+'-'+currentDay+'-'+mi];
+    if (mealOverride) {
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'add-custom-btn';
+      resetBtn.style.cssText += ';color:var(--text3);margin-top:5px';
+      resetBtn.textContent = '↺ Volver al menú original';
+      resetBtn.addEventListener('click', e => { e.stopPropagation(); delete mealOverrides[weekKey+'-'+currentDay+'-'+mi]; save('mealOverrides',mealOverrides); renderPlan(); });
+      expWrap.appendChild(resetBtn);
+    }
+
     card.appendChild(expWrap);
     block.appendChild(card);
     c.appendChild(block);
@@ -1108,6 +1304,7 @@ function renderPlan() {
 
 // --- Daily summary at 21:00 ---
 function checkDailySummary() {
+  if (!isClaudeAI) return; // Skip outside claude.ai
   const now = new Date();
   const hour = now.getHours();
   const todayKey2 = todayKey();
@@ -1135,7 +1332,7 @@ async function generateDailySummary() {
     return m.type+': sin registrar';
   }).join(' · ');
 
-  const prompt = `Eres un coach de nutrición. Resumen del día del usuario (93kg, objetivo perder peso):
+  const prompt = `Eres un coach de nutrición. Resumen del día del usuario '+(USER.weight)+'kg, objetivo perder peso):
 - Pasos: ${steps.toLocaleString()} de ${STEP_GOAL.toLocaleString()} objetivo
 - Calorías: ${eaten} comidas / ${target} objetivo
 - Comidas: ${markedMeals}
@@ -1207,7 +1404,7 @@ async function submitLog() {
     ? 'Lleva un déficit acumulado de ' + Math.round(cumul) + ' kcal (va bien).'
     : 'Lleva un superávit acumulado de ' + Math.abs(Math.round(cumul)) + ' kcal (necesita recuperar).';
 
-  const prompt = `Eres un nutricionista. Datos del usuario: 58 años, 93kg, 175cm, objetivo pérdida de peso. Objetivo de pasos diario: 8.000.
+  const prompt = `Eres un nutricionista. Datos del usuario: +USER.age+ años, +USER.weight+kg, +USER.height+cm, objetivo pérdida de peso. Objetivo de pasos diario: 8.000.
 Objetivo calórico hoy: ${kcalTarget} kcal (${steps} pasos).
 Plan base: Almuerzo(${basePlan[currentDay].meals[0].kcal}kcal), Comida(${basePlan[currentDay].meals[1].kcal}kcal), Cena(${basePlan[currentDay].meals[2].kcal}kcal).
 ${cumulInfo}
@@ -1239,27 +1436,246 @@ function clearAdjustment(dayIdx) {
 }
 
 // --- Shop ---
+// --- Dynamic shopping list ingredients database ---
+const ingredientDB = {
+  // Proteins
+  'bocadillo de pechuga':['Pechuga de pollo 300g','Pan integral 1 barra'],
+  'bocadillo de atún':['Atún al natural 3 latas','Pan integral 1 barra'],
+  'bocadillo de queso fresco con anchoas':['Queso fresco 200g','Anchoas 1 lata','Pan integral 1 barra'],
+  'bocadillo de jamón york':['Jamón york 100g','Pan integral 1 barra'],
+  'bocadillo de sardinas':['Sardinas al natural 2 latas','Pan integral 1 barra'],
+  'bocadillo de caballa':['Caballa al natural 2 latas','Pan integral 1 barra'],
+  'bocadillo de anchoas':['Anchoas 1 lata','Pan integral 1 barra'],
+  'bocadillo de longaniza':['Longaniza murciana 150g','Pan integral 1 barra'],
+  'bocadillo de pechuga de pollo con queso':['Pechuga de pollo 200g','Queso fresco 100g','Pan integral 1 barra'],
+  'zarangollo':['Calabacín 3 unidades','Cebolla 2 unidades','Huevos 4 unidades'],
+  'ensalada murciana':['Tomates 1 kg','Atún al natural 2 latas','Huevos 4 unidades','Aceitunas 1 bote'],
+  'huevos revueltos con jamón':['Huevos 6 unidades','Jamón serrano 100g','Champiñones 200g'],
+  'tortilla de patata':['Huevos 6 unidades','Patatas 500g','Cebolla 1 unidad'],
+  'sopa de pollo':['Pechuga de pollo 300g','Fideos finos 100g','Zanahoria 3 unidades','Cebolla 1 unidad'],
+  'sardinas o caballa al natural':['Sardinas al natural 2 latas','Tomates 500g'],
+  'gazpacho murciano':['Tomates 1 kg','Pimiento 2 unidades','Pepino 1 unidad','Ajo 2 dientes'],
+  'jamón cocido con queso fresco':['Jamón cocido 150g','Queso fresco 150g','Tomates 2 unidades'],
+  'tortas de aceite':['Tortas de aceite 1 paquete','Jamón serrano 80g'],
+  'salmón al horno':['Salmón fresco 300g','Brócoli 1 pieza','Limón 1 unidad'],
+  'merluza al vapor':['Merluza 400g','Tomates 2 unidades','Pepino 1 unidad'],
+  'pechuga a la plancha':['Pechuga de pollo 300g','Judías verdes 300g'],
+  'bacalao con tomate':['Bacalao desalado 400g','Tomates 500g','Pimientos 2 unidades'],
+  'conejo al ajillo':['Conejo troceado 600g','Ajo 1 cabeza','Vino blanco 100ml'],
+  'lomo en adobo':['Lomo de cerdo 400g','Pimentón','Ajo 4 dientes','Orégano'],
+  'arroz caldero':['Arroz 300g','Pescado (morralla) 500g','Ñora 2 unidades'],
+  'arroz con conejo':['Arroz 300g','Conejo troceado 500g','Caracoles 200g','Pimiento 2 unidades'],
+  'cordero al horno':['Pierna de cordero 1 kg','Patatas 500g','Ajo 1 cabeza'],
+  'olla gitana':['Garbanzos cocidos 2 botes','Judías verdes 200g','Calabaza 300g','Pera 1 unidad'],
+  'potaje de habichuelas':['Habichuelas cocidas 2 botes','Costilla de cerdo 200g','Morcilla 1 unidad'],
+  'michirones':['Habas secas 300g','Chorizo 100g','Jamón serrano 100g','Laurel'],
+  'guiso de pelotas':['Carne picada mixta 400g','Piñones 50g','Huevos 4 unidades','Pan rallado 100g'],
+  'dorada o lubina al horno':['Dorada o lubina 1 pieza','Patatas 500g','Limón 2 unidades'],
+  'alcachofas con jamón':['Alcachofas 6 unidades','Jamón serrano 100g','Ajo 3 dientes'],
+  'cocido':['Garbanzos secos 300g','Costilla de cerdo 300g','Zanahoria 3 unidades','Patatas 3 unidades'],
+};
+
+function getMealIngredients(mealName) {
+  const name = mealName.toLowerCase();
+  for(const key of Object.keys(ingredientDB)) {
+    if(name.includes(key)) return ingredientDB[key];
+  }
+  return [];
+}
+
+function generateDynamicShopList() {
+  const weekPlan = getCurrentWeekPlan();
+  const ingredientMap = {};
+  const baseItems = ['Aceite de oliva virgen extra si no tienes','Tomates 1 kg','Lechuga o mix 1 bolsa','Cebolla 3 unidades','Ajo 1 cabeza'];
+
+  baseItems.forEach(item => {
+    const parts = item.split(' ');
+    const qty = parts.slice(-2).join(' ');
+    const name = parts.slice(0,-2).join(' ');
+    ingredientMap[name] = ingredientMap[name] || qty;
+  });
+
+  weekPlan.forEach(day => {
+    day.meals.forEach(meal => {
+      getMealIngredients(meal.name).forEach(ing => {
+        const parts = ing.split(' ');
+        const qty = parts.slice(-2).join(' ');
+        const name = parts.slice(0,-2).join(' ');
+        if(!ingredientMap[name]) ingredientMap[name] = qty;
+      });
+    });
+  });
+  return ingredientMap;
+}
+
 function renderShop() {
   const c = document.getElementById('shop-content'); c.innerHTML='';
-  shopData.forEach((sec,si) => {
-    const s = document.createElement('div'); s.className='shop-section';
-    s.innerHTML='<div class="shop-sec-title">'+sec.icon+' '+sec.section+'</div>';
-    sec.items.forEach((item,ii) => {
-      const key='shop-'+si+'-'+ii;
-      const el=document.createElement('div');
-      el.className='shop-item'+(shopChecked[key]?' checked':'');
-      el.innerHTML='<div class="shop-cb">✓</div><div><div class="shop-name">'+item.name+'</div><div class="shop-qty">'+item.qty+'</div></div>';
-      el.addEventListener('click',()=>{ shopChecked[key]=!shopChecked[key]; el.classList.toggle('checked',shopChecked[key]); });
-      s.appendChild(el);
-    });
-    c.appendChild(s);
-  });
+
+  // Toggle buttons
+  const toggleRow = document.createElement('div');
+  toggleRow.style.cssText='display:flex;gap:8px;margin-bottom:14px';
+  toggleRow.innerHTML=`
+    <button id="btn-dynamic" onclick="setShopMode('dynamic')" style="flex:1;padding:9px;border-radius:var(--radius-sm);font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid var(--green);background:var(--green);color:#fff;font-weight:500">Según el menú</button>
+    <button id="btn-manual" onclick="setShopMode('manual')" style="flex:1;padding:9px;border-radius:var(--radius-sm);font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2)">Lista base</button>`;
+  c.appendChild(toggleRow);
+
+  const shopMode = window._shopMode || 'dynamic';
+  const listDiv = document.createElement('div'); listDiv.id='shop-list-content';
+  c.appendChild(listDiv);
+  renderShopList(shopMode);
+
   const rb=document.createElement('button'); rb.className='reset-btn'; rb.textContent='Reiniciar lista';
   rb.addEventListener('click',()=>{ Object.keys(shopChecked).forEach(k=>delete shopChecked[k]); renderShop(); });
   c.appendChild(rb);
 }
 
+window._shopMode = 'dynamic';
+function setShopMode(mode) {
+  window._shopMode = mode;
+  document.getElementById('btn-dynamic').style.cssText = 'flex:1;padding:9px;border-radius:var(--radius-sm);font-size:12px;font-family:var(--font);cursor:pointer;'+(mode==='dynamic'?'border:1px solid var(--green);background:var(--green);color:#fff;font-weight:500':'border:1px solid var(--border2);background:transparent;color:var(--text2)');
+  document.getElementById('btn-manual').style.cssText = 'flex:1;padding:9px;border-radius:var(--radius-sm);font-size:12px;font-family:var(--font);cursor:pointer;'+(mode==='manual'?'border:1px solid var(--green);background:var(--green);color:#fff;font-weight:500':'border:1px solid var(--border2);background:transparent;color:var(--text2)');
+  renderShopList(mode);
+}
+
+function renderShopList(mode) {
+  const listDiv = document.getElementById('shop-list-content');
+  if(!listDiv) return;
+  listDiv.innerHTML='';
+
+  if(mode==='dynamic') {
+    const ingredients = generateDynamicShopList();
+    const section = document.createElement('div'); section.className='shop-section';
+    section.innerHTML='<div class="shop-sec-title">🛒 Ingredientes para esta semana</div>';
+    Object.entries(ingredients).forEach(([name,qty],idx) => {
+      const key='dyn-'+idx;
+      const el=document.createElement('div');
+      el.className='shop-item'+(shopChecked[key]?' checked':'');
+      el.innerHTML='<div class="shop-cb">✓</div><div><div class="shop-name">'+name+'</div><div class="shop-qty">'+qty+'</div></div>';
+      el.addEventListener('click',()=>{ shopChecked[key]=!shopChecked[key]; el.classList.toggle('checked',shopChecked[key]); });
+      section.appendChild(el);
+    });
+    listDiv.appendChild(section);
+  } else {
+    shopData.forEach((sec,si) => {
+      const s = document.createElement('div'); s.className='shop-section';
+      s.innerHTML='<div class="shop-sec-title">'+sec.icon+' '+sec.section+'</div>';
+      sec.items.forEach((item,ii) => {
+        const key='shop-'+si+'-'+ii;
+        const el=document.createElement('div');
+        el.className='shop-item'+(shopChecked[key]?' checked':'');
+        el.innerHTML='<div class="shop-cb">✓</div><div><div class="shop-name">'+item.name+'</div><div class="shop-qty">'+item.qty+'</div></div>';
+        el.addEventListener('click',()=>{ shopChecked[key]=!shopChecked[key]; el.classList.toggle('checked',shopChecked[key]); });
+        s.appendChild(el);
+      });
+      listDiv.appendChild(s);
+    });
+  }
+}
+
 // --- Favs ---
+function calcBMR(age, weight, height) {
+  // Mifflin-St Jeor for men (assuming male)
+  return Math.round(10 * weight + 6.25 * height - 5 * age + 5);
+}
+
+function renderProfile() {
+  const age = document.getElementById('prof-age');
+  const weight = document.getElementById('prof-weight');
+  const height = document.getElementById('prof-height');
+  const steps = document.getElementById('prof-steps');
+  if (!age) return;
+  age.value = USER.age;
+  weight.value = USER.weight;
+  height.value = USER.height;
+  steps.value = STEP_GOAL;
+  updateProfileCalc();
+  // Live update on input change
+  [age, weight, height, steps].forEach(el => el.addEventListener('input', updateProfileCalc));
+}
+
+function updateProfileCalc() {
+  const age = parseInt(document.getElementById('prof-age').value) || USER.age;
+  const weight = parseFloat(document.getElementById('prof-weight').value) || USER.weight;
+  const height = parseInt(document.getElementById('prof-height').value) || USER.height;
+  const stepGoal = parseInt(document.getElementById('prof-steps').value) || STEP_GOAL;
+  const bmr = calcBMR(age, weight, height);
+  const target = Math.round(700 + stepGoal * 0.135);
+  const bmrEl = document.getElementById('prof-bmr-val');
+  const targetEl = document.getElementById('prof-target-val');
+  if (bmrEl) bmrEl.textContent = bmr.toLocaleString() + ' kcal';
+  if (targetEl) targetEl.textContent = '~' + target.toLocaleString() + ' kcal/día';
+}
+
+function saveProfile() {
+  const age = parseInt(document.getElementById('prof-age').value);
+  const weight = parseFloat(document.getElementById('prof-weight').value);
+  const height = parseInt(document.getElementById('prof-height').value);
+  const stepGoal = parseInt(document.getElementById('prof-steps').value);
+  if (!age || !weight || !height || !stepGoal) return;
+  USER.age = age; USER.weight = weight; USER.height = height;
+  USER.bmr = calcBMR(age, weight, height);
+  STEP_GOAL = stepGoal;
+  save('userProfile', {age, weight, height, stepGoal});
+  updateProfileCalc();
+  // Show confirmation
+  const btn = document.querySelector('[onclick="saveProfile()"]');
+  if (btn) { btn.textContent = '✓ Guardado'; setTimeout(()=>{ btn.textContent = 'Guardar perfil'; },1500); }
+  // Refresh plan with new targets
+  renderPlan();
+}
+
+async function exportFavsExcel() {
+  const ml={comida:'Comida restaurante',cena:'Cena en casa',almuerzo:'Almuerzo en casa'};
+  // Load SheetJS
+  if (!window.XLSX) {
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  const data = [['Nombre','Momento','Calorías']];
+  favorites.forEach(f => data.push([f.name, ml[f.moment]||f.moment, f.kcal||'']));
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:35},{wch:22},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Mis Platos');
+  XLSX.writeFile(wb, 'mis-platos-favoritos.xlsx');
+}
+
+async function importFavsExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!window.XLSX) {
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+      const ml={'Comida restaurante':'comida','Cena en casa':'cena','Almuerzo en casa':'almuerzo'};
+      const newFavs = [];
+      rows.slice(1).forEach(row => {
+        if (!row[0]) return;
+        const name = String(row[0]).trim();
+        const moment = ml[String(row[1]||'').trim()] || 'comida';
+        const kcal = parseInt(row[2]) || 0;
+        if (name) newFavs.push({name, moment, kcal});
+      });
+      if (newFavs.length > 0) {
+        favorites = newFavs;
+        save('favs', favorites);
+        renderFavs();
+        alert('✓ Importados '+newFavs.length+' platos correctamente');
+      } else {
+        alert('No se encontraron platos en el archivo. Asegúrate de que tiene las columnas: Nombre, Momento, Calorías');
+      }
+    } catch(err) {
+      alert('Error al leer el archivo: '+err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+  input.value = '';
+}
+
 function renderFavs() {
   const list=document.getElementById('fav-list'); list.innerHTML='';
   if(!favorites.length){ list.innerHTML='<p style="font-size:13px;color:var(--text3)">Aún no tienes platos guardados.</p>'; return; }
@@ -1297,6 +1713,10 @@ async function addFavorite(){
 }
 
 async function estimateKcal(name) {
+  if (!isClaudeAI) {
+    const m = prompt('Introduce las kcal de "'+name+'" manualmente:');
+    return parseInt(m) || 0;
+  }
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:20,
@@ -1328,6 +1748,31 @@ async function estimateFavKcal(i) {
 function removeFav(i){ favorites.splice(i,1); save('favs',favorites); renderFavs(); }
 
 // --- Historial ---
+let histWeekOffset = 0; // 0=current week, -1=last week, -2=2 weeks ago...
+
+function getWeekDates(offset) {
+  const now = new Date();
+  const day = now.getDay() === 0 ? 6 : now.getDay()-1; // Mon=0
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - day + offset*7);
+  const dates = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(monday);
+    d.setDate(monday.getDate()+i);
+    dates.push(d.toISOString().slice(0,10));
+  }
+  return dates;
+}
+
+function formatWeekLabel(offset) {
+  if(offset===0) return 'Esta semana';
+  if(offset===-1) return 'Semana pasada';
+  const dates = getWeekDates(offset);
+  const d0 = new Date(dates[0]);
+  const d6 = new Date(dates[6]);
+  return d0.toLocaleDateString('es-ES',{day:'numeric',month:'short'})+' – '+d6.toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+}
+
 function renderHist() {
   const c=document.getElementById('hist-content'); c.innerHTML='';
   const {current,best}=calcStreak();
@@ -1339,25 +1784,50 @@ function renderHist() {
   sc.innerHTML=`<div style="font-size:36px">🔥</div><div style="flex:1"><div style="font-size:28px;font-weight:500;color:var(--amber);line-height:1">${current}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">días de racha · mejor: <strong style="color:var(--text)">${best}</strong></div></div>${kgLost!==null?`<div style="text-align:right"><div style="font-size:22px;font-weight:500;color:var(--green)">-${kgLost} kg</div><div style="font-size:11px;color:var(--text3)">desde el inicio</div></div>`:''}`;
   c.appendChild(sc);
 
-  // Cal history
-  const allDates=Object.keys(calHistory).sort();
-  const calTitle=document.createElement('div'); calTitle.className='hist-section-title'; calTitle.style.marginTop='4px';
-  calTitle.textContent='Calorías · historial completo'; c.appendChild(calTitle);
+  // Week navigation
+  const weekNav = document.createElement('div');
+  weekNav.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px';
+  weekNav.innerHTML=`
+    <button onclick="changeHistWeek(-1)" style="background:transparent;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 8px">‹</button>
+    <span style="font-size:13px;font-weight:500;color:var(--text)">${formatWeekLabel(histWeekOffset)}</span>
+    <button onclick="changeHistWeek(1)" ${histWeekOffset>=0?'disabled style="opacity:.3;cursor:default"':''} style="background:transparent;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 8px">›</button>`;
+  c.appendChild(weekNav);
 
-  if(allDates.length===0){
+  // Filter dates for selected week
+  const weekDates = getWeekDates(histWeekOffset);
+  const weekDateSet = new Set(weekDates);
+  const allDates = Object.keys(calHistory).sort();
+  const filteredDates = histWeekOffset === null ? allDates : allDates.filter(d=>weekDateSet.has(d));
+
+  // Acumulado tab
+  const showAll = histWeekOffset === null;
+  const tabRow = document.createElement('div');
+  tabRow.style.cssText='display:flex;gap:6px;margin-bottom:10px';
+  tabRow.innerHTML=`
+    <button onclick="histWeekOffset=0;renderHist()" style="flex:1;padding:7px;border-radius:var(--radius-sm);font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid ${histWeekOffset!==null?'var(--green)':'var(--border2)'};background:${histWeekOffset!==null?'var(--green)':'transparent'};color:${histWeekOffset!==null?'#fff':'var(--text2)'}">Por semana</button>
+    <button onclick="histWeekOffset=null;renderHist()" style="flex:1;padding:7px;border-radius:var(--radius-sm);font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid ${histWeekOffset===null?'var(--green)':'var(--border2)'};background:${histWeekOffset===null?'var(--green)':'transparent'};color:${histWeekOffset===null?'#fff':'var(--text2)'}">Acumulado total</button>`;
+  c.appendChild(tabRow);
+
+  const displayDates = showAll ? allDates : filteredDates;
+  const calTitle=document.createElement('div'); calTitle.className='hist-section-title';
+  calTitle.textContent = showAll ? 'Calorías · historial completo' : 'Calorías · '+formatWeekLabel(histWeekOffset);
+  c.appendChild(calTitle);
+
+  if(displayDates.length===0){
     const nd=document.createElement('div'); nd.className='hist-card';
-    nd.innerHTML='<div class="no-data">Los datos aparecen aquí cada día que uses la app.</div>'; c.appendChild(nd);
+    nd.innerHTML='<div class="no-data">'+(showAll?'Los datos aparecen aquí cada día que uses la app.':'No hay datos para esta semana.')+'</div>';
+    c.appendChild(nd);
   } else {
-    const totalDef=allDates.reduce((s,k)=>s+(calHistory[k].target-calHistory[k].eaten),0);
-    const avgEaten=Math.round(allDates.reduce((s,k)=>s+calHistory[k].eaten,0)/allDates.length);
+    const totalDef=displayDates.reduce((s,k)=>s+(calHistory[k].target-calHistory[k].eaten),0);
+    const avgEaten=Math.round(displayDates.reduce((s,k)=>s+calHistory[k].eaten,0)/displayDates.length);
     const estLoss=(totalDef/7700).toFixed(2);
     const stats=document.createElement('div'); stats.className='hist-stats';
-    stats.innerHTML=`<div class="hist-stat"><div class="hist-stat-val ${totalDef>=0?'green':'amber'}">${totalDef>=0?'−':'+'}${Math.abs(Math.round(totalDef)).toLocaleString()} kcal</div><div class="hist-stat-lbl">Balance acumulado</div></div><div class="hist-stat"><div class="hist-stat-val ${parseFloat(estLoss)>=0?'green':'amber'}">${parseFloat(estLoss)>=0?'−':'+'}${Math.abs(estLoss)} kg</div><div class="hist-stat-lbl">Pérdida estimada</div></div><div class="hist-stat"><div class="hist-stat-val">${avgEaten.toLocaleString()}</div><div class="hist-stat-lbl">Media kcal/día</div></div><div class="hist-stat"><div class="hist-stat-val">${allDates.length}</div><div class="hist-stat-lbl">Días registrados</div></div>`;
+    stats.innerHTML=`<div class="hist-stat"><div class="hist-stat-val ${totalDef>=0?'green':'amber'}">${totalDef>=0?'−':'+'}${Math.abs(Math.round(totalDef)).toLocaleString()} kcal</div><div class="hist-stat-lbl">${showAll?'Balance acumulado':'Balance semana'}</div></div><div class="hist-stat"><div class="hist-stat-val ${parseFloat(estLoss)>=0?'green':'amber'}">${parseFloat(estLoss)>=0?'−':'+'}${Math.abs(estLoss)} kg</div><div class="hist-stat-lbl">Pérdida estimada</div></div><div class="hist-stat"><div class="hist-stat-val">${avgEaten.toLocaleString()}</div><div class="hist-stat-lbl">Media kcal/día</div></div><div class="hist-stat"><div class="hist-stat-val">${displayDates.length}</div><div class="hist-stat-lbl">Días registrados</div></div>`;
     c.appendChild(stats);
     const leg=document.createElement('div'); leg.className='hist-legend';
     leg.innerHTML='<div class="hist-legend-item"><div class="hist-legend-dot" style="background:#2dba85"></div>Comidas</div><div class="hist-legend-item"><div class="hist-legend-dot" style="background:rgba(255,255,255,0.15)"></div>Objetivo</div>';
     c.appendChild(leg);
-    const chartH=Math.max(180,Math.min(allDates.length*28,320));
+    const chartH=Math.max(180,Math.min(displayDates.length*28,320));
     const calCard=document.createElement('div'); calCard.className='hist-card'; calCard.style.padding='14px 10px 10px';
     calCard.innerHTML=`<div style="position:relative;width:100%;height:${chartH}px"><canvas id="cal-chart" role="img" aria-label="Historial calorías"></canvas></div>`;
     c.appendChild(calCard);
@@ -1384,13 +1854,13 @@ function renderHist() {
 
   setTimeout(()=>{
     if(!window.Chart) return;
-    if(allDates.length>0){
+    if(displayDates.length>0){
       const ctx=document.getElementById('cal-chart');
       if(ctx){
         if(ctx._chart) ctx._chart.destroy();
-        const labels=allDates.map(d=>{const p=d.split('-');return p[2]+'/'+p[1];});
-        const eaten=allDates.map(d=>calHistory[d].eaten);
-        const targets=allDates.map(d=>calHistory[d].target);
+        const labels=displayDates.map(d=>{const p=d.split('-');return p[2]+'/'+p[1];});
+        const eaten=displayDates.map(d=>calHistory[d].eaten);
+        const targets=displayDates.map(d=>calHistory[d].target);
         ctx._chart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Comidas',data:eaten,backgroundColor:eaten.map((v,i)=>v>targets[i]?'rgba(240,160,48,0.85)':'rgba(45,186,133,0.85)'),borderRadius:3},{label:'Objetivo',data:targets,backgroundColor:'rgba(255,255,255,0.08)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y.toLocaleString()+' kcal'}}},scales:{x:{ticks:{color:'#5a5754',font:{size:10},autoSkip:true,maxTicksLimit:12},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#5a5754',font:{size:10},callback:v=>v.toLocaleString()},grid:{color:'rgba(255,255,255,0.06)'},min:Math.min(...targets,...eaten)-200}}}});
       }
     }
@@ -1404,6 +1874,13 @@ function renderHist() {
       }
     }
   },150);
+}
+
+function changeHistWeek(dir) {
+  if (histWeekOffset === null) { histWeekOffset = 0; return renderHist(); }
+  histWeekOffset = histWeekOffset + dir;
+  if (histWeekOffset > 0) histWeekOffset = 0;
+  renderHist();
 }
 
 function addWeight(){
@@ -1430,6 +1907,7 @@ function switchView(v){
   });
   document.querySelector('.fab').style.display=v==='plan'?'flex':'none';
   if(v==='hist') renderHist();
+  if(v==='favs') renderProfile();
 }
 
 // --- Init ---

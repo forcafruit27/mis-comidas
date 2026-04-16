@@ -444,10 +444,9 @@ const saveQueue = {};
 const isClaudeAI = false;
 function save(key, val) {
   saveQueue[key] = val;
-  const str = JSON.stringify(saveQueue[key]);
   const dot = document.getElementById('save-dot');
-  try { localStorage.setItem(key, str); } catch(e) {}
-  if (dot) { dot.style.background = '#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
+  try { localStorage.setItem(key, JSON.stringify(saveQueue[key])); } catch(e) {}
+  if (dot) { dot.style.background='#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
 }
 function load(key, fallback) {
   try { const r = localStorage.getItem(key); if (r) return JSON.parse(r); } catch(e) {}
@@ -649,7 +648,7 @@ function customKey(d,m){ return d+'-'+m+'-custom'; }
 // key: customKey(d,m) → {name, kcal}
 
 function initStorage() {
-  checked       = load('checkedMeals', {})();
+  checked       = load('checkedMeals', {});
   favorites     = load('favs', [{name:'Cocido/puchero murciano',moment:'comida'},{name:'Paella valenciana',moment:'comida'}]);
   dailySteps    = load('dailySteps', {});
   aiAdjustments = load('aiAdjustments', {});
@@ -691,8 +690,9 @@ async function saveCustomMeal() {
     closeCustomModal();
     document.getElementById('ai-loading').classList.add('show');
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,messages:[{role:'user',content:'Estima las calorías de esta comida para una persona de '+USER.weight+'kg. Solo responde con el número entero, sin texto: "'+name+'"'}]})});
-      const data = await res.json();
+      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,messages:[{role:'user',content:'Estima las calorías de esta comida para una persona de '+USER.weight+'kg. Solo responde con el número entero, sin texto: "'+name+'"'}]})}).catch(()=>null);
+      if (!res) throw new Error("fetch failed");
+    const data = await res.json();
       kcal = parseInt(data.content.map(b=>b.text||'').join('').trim()) || 600;
     } catch(e) { kcal = 600; }
     document.getElementById('ai-loading').classList.remove('show');
@@ -942,7 +942,6 @@ function triggerAutoAnalysis() {
   clearTimeout(analyzeTimer);
   analyzeTimer = setTimeout(autoAnalyze, 1200);
 }
-
 async function autoAnalyze() {
   const steps    = getStepsForDay(currentDay);
   const target   = calcKcal(steps);
@@ -991,7 +990,9 @@ Solo el mensaje, sin comillas ni prefijos.`;
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:120,messages:[{role:'user',content:prompt}]})
-    });
+    }).catch(()=>null).catch(()=>null);
+    if (!res) throw new Error('no response');
+    if (!res) throw new Error("fetch failed");
     const data = await res.json();
     const msg = data.content.map(b=>b.text||'').join('').trim();
     if (msg && msgEl) {
@@ -1345,7 +1346,8 @@ Escribe un resumen del día en 3 frases máximo: 1) cómo ha ido hoy, 2) un cons
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})
-    });
+    }).catch(()=>null);
+    if (!res) throw new Error("fetch failed");
     const data = await res.json();
     const msg = data.content.map(b=>b.text||'').join('').trim();
     const textEl = document.getElementById('summary-text');
@@ -1425,7 +1427,8 @@ Ha comido esto fuera del plan o en una celebración: "${text}".
 Ajusta cena hoy y los próximos 2 días para recuperar el balance. Si el superávit es grande sugiere también cuántos pasos extra debería dar. Solo JSON sin texto extra:
 {"explanation":"max 2 frases con consejo claro","stepsExtra":0,"today":{"meals":[null,null,{"name":"","desc":"","kcal":0}]},"tomorrow":{"explanation":"","meals":[{"name":"","desc":"","kcal":0},null,{"name":"","desc":"","kcal":0}]},"dayAfter":{"explanation":"","meals":[{"name":"","desc":"","kcal":0},null,{"name":"","desc":"","kcal":0}]}}`;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})}).catch(()=>null);
+    if (!res) throw new Error("fetch failed");
     const data = await res.json();
     const raw = data.content.map(b=>b.text||'').join('');
     const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
@@ -1732,7 +1735,8 @@ async function estimateKcal(name) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:20,
-        messages:[{role:'user',content:'Calorías de "'+name+'" como comida ligera casera, ración normal de una persona adulta haciendo dieta. Solo el número entero, sin texto. Ejemplos: tostada con atún=270, bocadillo pequeño=280, ensalada con pollo=350, tortilla 2 huevos=180.'}]})});
+        messages:[{role:'user',content:'Calorías de "'+name+'" como comida ligera casera, ración normal de una persona adulta haciendo dieta. Solo el número entero, sin texto. Ejemplos: tostada con atún=270, bocadillo pequeño=280, ensalada con pollo=350, tortilla 2 huevos=180.'}]})}).catch(()=>null);
+    if (!res) throw new Error("fetch failed");
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
     const txt = data.content.map(b=>b.text||'').join('').trim();

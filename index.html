@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0e0e0e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Mis Comidas</title>
 <style>
 :root {
@@ -421,6 +423,7 @@ const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const fullDays = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const todayIdx = (new Date().getDay()+6)%7;
 let currentDay = todayIdx;
+let planWeekOffset = 0; // 0=current week, -1=last week
 const shopChecked = {};
 
 let checked = {};
@@ -437,31 +440,16 @@ let analyzeTimer = null;
 let summaryShown = false;
 
 // --- Storage ---
-const isClaudeAI = typeof window.storage !== 'undefined';
 const saveQueue = {};
-async function save(key, val) {
+const isClaudeAI = false;
+function save(key, val) {
   saveQueue[key] = val;
+  const str = JSON.stringify(saveQueue[key]);
   const dot = document.getElementById('save-dot');
-  try {
-    if (isClaudeAI) {
-      await window.storage.set(key, JSON.stringify(saveQueue[key]));
-    } else {
-      localStorage.setItem(key, JSON.stringify(saveQueue[key]));
-    }
-    if (dot) { dot.style.background='#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
-  } catch(e) {
-    try { localStorage.setItem(key, JSON.stringify(saveQueue[key])); } catch(e2) {}
-    // Still show green — data saved to localStorage fallback
-    if (dot) { dot.style.background='#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
-  }
+  try { localStorage.setItem(key, str); } catch(e) {}
+  if (dot) { dot.style.background = '#2dba85'; setTimeout(()=>{ dot.style.background='transparent'; },800); }
 }
-async function load(key, fallback) {
-  try {
-    if (isClaudeAI) {
-      const r = await window.storage.get(key);
-      if (r) return JSON.parse(r.value);
-    }
-  } catch(e) {}
+function load(key, fallback) {
   try { const r = localStorage.getItem(key); if (r) return JSON.parse(r); } catch(e) {}
   return fallback;
 }
@@ -480,8 +468,14 @@ function getStepsForDay(i) {
 
 function getDateKey(dayOffset) {
   const d = new Date();
-  d.setDate(d.getDate() + (dayOffset - todayIdx));
+  d.setDate(d.getDate() + (dayOffset - todayIdx) + planWeekOffset * 7);
   return d.toISOString().slice(0,10);
+}
+
+function getPlanWeekLabel() {
+  if (planWeekOffset === 0) return 'Esta semana';
+  if (planWeekOffset === -1) return 'Semana pasada';
+  return Math.abs(planWeekOffset) + ' semanas atrás';
 }
 
 // --- Plan data (Almuerzo=breakfast, Comida=lunch, Cena=dinner) ---
@@ -654,19 +648,19 @@ function customKey(d,m){ return d+'-'+m+'-custom'; }
 
 // key: customKey(d,m) → {name, kcal}
 
-async function initStorage() {
-  checked       = await load('checkedMeals', {});
-  favorites     = await load('favs', [{name:'Cocido/puchero murciano',moment:'comida'},{name:'Paella valenciana',moment:'comida'}]);
-  dailySteps    = await load('dailySteps', {});
-  aiAdjustments = await load('aiAdjustments', {});
-  weightLog     = await load('weightLog', []);
-  calHistory    = await load('calHistory', {});
-  streakLog     = await load('streakLog', {});
-  customMeals   = await load('customMeals', {});
-  aiMsgCache    = await load('aiMsgCache', {});
-  dailyDrinks   = await load('dailyDrinks', {});
-  mealOverrides = await load('mealOverrides', {});
-  const savedProfile = await load('userProfile', null);
+function initStorage() {
+  checked       = load('checkedMeals', {})();
+  favorites     = load('favs', [{name:'Cocido/puchero murciano',moment:'comida'},{name:'Paella valenciana',moment:'comida'}]);
+  dailySteps    = load('dailySteps', {});
+  aiAdjustments = load('aiAdjustments', {});
+  weightLog     = load('weightLog', []);
+  calHistory    = load('calHistory', {});
+  streakLog     = load('streakLog', {});
+  customMeals   = load('customMeals', {});
+  aiMsgCache    = load('aiMsgCache', {});
+  dailyDrinks   = load('dailyDrinks', {});
+  mealOverrides = load('mealOverrides', {});
+  const savedProfile = load('userProfile', null);
   if (savedProfile) {
     USER.age = savedProfile.age || USER.age;
     USER.weight = savedProfile.weight || USER.weight;
@@ -1019,12 +1013,12 @@ function updateProgress() {
   document.getElementById('prog-text').textContent = done+' / '+total;
   renderBalance();
   renderStats();
-  if (currentDay===todayIdx) {
+  if (currentDay===todayIdx && planWeekOffset===0) {
     setTimeout(()=>markStreakToday(), 50);
     setTimeout(()=>saveCalHistoryToday(), 100);
     setTimeout(()=>renderStreak(), 150);
   }
-  if (currentDay===todayIdx) triggerAutoAnalysis();
+  if (currentDay===todayIdx && planWeekOffset===0) triggerAutoAnalysis();
 }
 
 function renderStats() {
@@ -1090,7 +1084,7 @@ function renderPlan() {
 
   const now = new Date();
   const dateObj = new Date(now);
-  dateObj.setDate(now.getDate() + (currentDay - todayIdx));
+  dateObj.setDate(now.getDate() + (currentDay - todayIdx) + planWeekOffset * 7);
   document.getElementById('top-date').textContent = dateObj.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('top-day').textContent = fullDays[currentDay];
   document.getElementById('top-kcal').textContent = '~'+kcalTarget.toLocaleString()+' kcal';
@@ -1118,12 +1112,6 @@ function renderPlan() {
       +stepsMsg;
     c.appendChild(banner);
   }
-
-  // Drinks
-  const note = document.createElement('div');
-  note.className='drinks-note';
-  note.innerHTML='🍺 <span>1 caña antes de comer + 1 copa de vino: <strong>~200 kcal</strong> — ya incluidas en la Comida del plan.</span>';
-  c.appendChild(note);
 
   const weekKey = (() => { const n=new Date(); const s=new Date(n.getFullYear(),0,1); return Math.ceil(((n-s)/86400000+s.getDay()+1)/7); })();
 
@@ -1378,13 +1366,37 @@ function closeSummary() {
 function buildDayNav() {
   const nav = document.getElementById('day-nav');
   nav.innerHTML='';
+
+  // Week navigation row
+  const weekRow = document.createElement('div');
+  weekRow.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:6px 4px 8px;width:100%';
+  weekRow.innerHTML=`
+    <button onclick="changePlanWeek(-1)" style="background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:13px;cursor:pointer;padding:4px 10px;font-family:var(--font)">‹ Anterior</button>
+    <span style="font-size:12px;color:${planWeekOffset===0?'var(--green)':'var(--amber)'};font-weight:500">${getPlanWeekLabel()}</span>
+    <button onclick="changePlanWeek(1)" ${planWeekOffset>=0?'disabled style="opacity:.3;cursor:default"':''} style="background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:13px;cursor:pointer;padding:4px 10px;font-family:var(--font)">Siguiente ›</button>`;
+  nav.appendChild(weekRow);
+
+  // Day buttons
+  const dayRow = document.createElement('div');
+  dayRow.style.cssText='display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;width:100%';
   days.forEach((d,i) => {
     const b = document.createElement('button');
-    b.className='day-btn'+(i===currentDay?' active':'')+(i===todayIdx&&i!==currentDay?' today':'');
-    b.textContent=d+(i===todayIdx?' ·':'');
-    b.addEventListener('click', ()=>{ currentDay=i; buildDayNav(); renderPlan(); nav.children[i].scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); });
-    nav.appendChild(b);
+    const isToday = i===todayIdx && planWeekOffset===0;
+    b.className='day-btn'+(i===currentDay?' active':'')+(isToday&&i!==currentDay?' today':'');
+    b.textContent=d+(isToday?' ·':'');
+    b.addEventListener('click', ()=>{ currentDay=i; buildDayNav(); renderPlan(); });
+    dayRow.appendChild(b);
   });
+  nav.appendChild(dayRow);
+}
+
+function changePlanWeek(dir) {
+  planWeekOffset += dir;
+  if (planWeekOffset > 0) planWeekOffset = 0;
+  // When going back, start at saturday (last day), when going forward start at today
+  currentDay = planWeekOffset === 0 ? todayIdx : 6;
+  buildDayNav();
+  renderPlan();
 }
 
 // --- AI log ---
@@ -1720,7 +1732,7 @@ async function estimateKcal(name) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:20,
-        messages:[{role:'user',content:'Número de calorías de "'+name+'" ración normal. Solo el número entero sin nada más.'}]})});
+        messages:[{role:'user',content:'Calorías de "'+name+'" como comida ligera casera, ración normal de una persona adulta haciendo dieta. Solo el número entero, sin texto. Ejemplos: tostada con atún=270, bocadillo pequeño=280, ensalada con pollo=350, tortilla 2 huevos=180.'}]})});
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
     const txt = data.content.map(b=>b.text||'').join('').trim();
@@ -1910,19 +1922,17 @@ function switchView(v){
   if(v==='favs') renderProfile();
 }
 
-// --- Init ---
-initStorage().then(()=>{
-  buildDayNav();
-  renderPlan();
-  renderShop();
-  renderFavs();
-  setInterval(checkDailySummary, 60000);
-  setTimeout(checkDailySummary, 3000);
-  setTimeout(()=>{
-    const nav=document.getElementById('day-nav');
-    if(nav.children[currentDay]) nav.children[currentDay].scrollIntoView({inline:'center',block:'nearest'});
-  },100);
-});
+initStorage();
+buildDayNav();
+renderPlan();
+renderShop();
+renderFavs();
+setInterval(checkDailySummary, 60000);
+setTimeout(checkDailySummary, 3000);
+setTimeout(()=>{
+  const nav=document.getElementById('day-nav');
+  if(nav.children[currentDay]) nav.children[currentDay].scrollIntoView({inline:'center',block:'nearest'});
+},100);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
